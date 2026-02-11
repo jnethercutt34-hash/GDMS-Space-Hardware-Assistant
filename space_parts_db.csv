@@ -1,0 +1,72 @@
+Internal_PN,Manufacturer,Part_Number,Category,Rad_Hard,Specs,Project_History,Status,Datasheet_Link
+SPC-FPGA-001,Microchip,RTG4,Processing & Logic,True,"Radiation-Hardened FPGA, 150k LE, Enhanced Power Management, New Binning Available",Mars-Rover-V2,Flight Proven - Production,
+SPC-TRX-022,Smiths Interconnect,SpaceABLE 28G,Data & Comms,True,"4x28Gbps, <6mm height, 100krad",Sat-Constellation-V1,Flight Proven,
+BULK-IMPORT,Renesas,Renesas-CATALOG-2,"Power Management, Rad-Hard Analog",True,Imported from Space &amp; Harsh Environment | Renesas,Catalog Import,Prototyping Only,https://www.renesas.com/us/en/products/space-harsh-environment
+SPACE-0004,Microchip,RT54SX72S,FPGA,True,"FPGA, Rad-Hard, 72k gates",Space Qualification DB,Prototyping Only,https://microchip.com
+SPACE-0005,Microchip,RTSX150T,FPGA,True,"FPGA, Space-qualified, 150k LUT",Space Qualification DB,Prototyping Only,https://microchip.com
+SPACE-0006,Renesas,ISL71091,Analog,True,"Precision Voltage Reference, Rad-Hard, Temperature Compensated, ±0.8% Accuracy",Space Qualification DB,Flight Proven - Production,https://renesas.com
+SPACE-0007,Renesas,ISL21090,Analog,True,"Reference, Low Noise, Space",Space Qualification DB,Prototyping Only,https://renesas.com
+SPACE-0008,Renesas,ISL70001,Power Management,True,Rad-Hard Buck Converter,Space Qualification DB,Prototyping Only,https://renesas.com
+SPACE-0009,Renesas,ISL6560,Power Management,True,Multi-phase regulator,Space Qualification DB,Prototyping Only,https://renesas.com
+SPACE-0010,STMicroelectronics,STA5731-AA,Power Management,True,"Single Channel LDO, Rad-Hard",Space Qualification DB,Prototyping Only,https://stmicroelectronics.com
+SPACE-0011,STMicroelectronics,H7140,Analog,True,"Precision Comparator, Space",Space Qualification DB,Prototyping Only,https://stmicroelectronics.com
+SPACE-0012,STMicroelectronics,HD3-1711,Memory,True,"SRAM, 16k, Rad-Hard",Space Qualification DB,Prototyping Only,https://stmicroelectronics.com
+SPACE-0013,STMicroelectronics,M58LW016,Memory,True,"Flash Memory, Rad-Hard",Space Qualification DB,Prototyping Only,https://stmicroelectronics.com
+SPACE-0014,Xilinx,XQ7K160T,FPGA,True,"Kintex-7 FPGA, Radiation-Hardened",Space Qualification DB,Prototyping Only,https://xilinx.com
+SPACE-0015,Xilinx,XQ7A50T,FPGA,True,"Artix-7 FPGA, Rad-Hard",Space Qualification DB,Prototyping Only,https://xilinx.com
+SPACE-0016,Xilinx,XQ6VLX240T,FPGA,True,"Virtex-6 FPGA, Space-Grade",Space Qualification DB,Prototyping Only,https://xilinx.com
+SPACE-0017,Actel,RTAX2000S,FPGA,True,"Antifuse FPGA, Rad-Hard, 2M gates",Space Qualification DB,Prototyping Only,https://actel.com
+SPACE-0018,Actel,RTAX-S,FPGA,True,Rad-Hard FPGA,Space Qualification DB,Prototyping Only,https://actel.com
+SPACE-0019,Actel,PROASIC3,FPGA,True,"Low-Power, Flash-based",Space Qualification DB,Prototyping Only,https://actel.com
+SPACE-0020,Analog Devices,ADG1207,Switch,True,"CMOS Analog Switch, Rad-Hard",Space Qualification DB,Prototyping Only,https://analogdevices.com
+SPACE-0021,Analog Devices,AD8065,Op-Amp,True,"High Speed, Radiation",Space Qualification DB,Prototyping Only,https://analogdevices.com
+SPACE-0022,Analog Devices,AD9245,ADC,True,"14-bit ADC, 125 MSPS",Space Qualification DB,Prototyping Only,https://analogdevices.com
+SPACE-0023,Linear Tech,LT3085,Power Mgmt,True,Low Dropout Regulator,Space Qualification DB,Prototyping Only,https://lineartech.com
+SPACE-0024,Linear Tech,LTC3879,Power Mgmt,True,Synchronous Buck Converter,Space Qualification DB,Prototyping Only,https://lineartech.com
+SPACE-0025,TI,LM7705,Power Mgmt,True,Dual Supply Generator,Space Qualification DB,Prototyping Only,https://ti.com
+SPACE-0026,TI,TPS3839,Supervisor,True,Supply Voltage Supervisor,Space Qualification DB,Prototyping Only,https://ti.com
+SPACE-0027,TI,OPA627,Op-Amp,True,High Speed Precision Op-Amp,Space Qualification DB,Prototyping Only,https://ti.com
+SPACE-0028,onsemi,NCP4200,Power Mgmt,True,PWM Controller,Space Qualification DB,Prototyping Only,https://onsemi.com
+SPACE-0029,onsemi,MC33498,Driver,True,H-Bridge Motor Driver,Space Qualification DB,Prototyping Only,https://onsemi.com
+SPACE-0030,Microsemi,RTAX1000,FPGA,True,Rad-Hard Antifuse FPGA,Space Qualification DB,Prototyping Only,https://microsemi.com
+SPACE-0031,Microsemi,RTAX1000S,FPGA,True,"Rad-Hard, 1M gates",Space Qualification DB,Prototyping Only,https://microsemi.com
+SPACE-0032,Microsemi,MS3024,ASIC,True,Rad-Hard ASIC,Space Qualification DB,Prototyping Only,https://microsemi.com
+SPACE-0033,Aeroflex,UTMC12M016,Memory,True,"16Mbyte Flash, Rad-Hard",Space Qualification DB,Prototyping Only,https://aeroflex.com
+SPACE-0034,Aeroflex,UT6M016,Memory,True,"16Mbyte SRAM, Rad-Hard",Space Qualification DB,Prototyping Only,https://aeroflex.com
+SPACE-0035,Aeroflex,UT22FF,FPGA,True,"Flash-based FPGA, Space",Space Qualification DB,Prototyping Only,https://aeroflex.com
+SPACE-0036,Cobham,RT1149PH,Logic,True,"Hex Buffer, Rad-Hard",Space Qualification DB,Prototyping Only,https://cobham.com
+SPACE-0037,Cobham,RT54SX72S,FPGA,True,Radiation-Hardened FPGA,Space Qualification DB,Prototyping Only,https://cobham.com
+SPACE-0038,Atmel,AT40K,FPGA,True,"Antifuse FPGA, Space-Grade",Space Qualification DB,Prototyping Only,https://atmel.com
+SPACE-0039,ITC,ITT4131,Analog,True,Precision Op-Amp,Space Qualification DB,Prototyping Only,https://itc.com
+SPACE-0040,ITC,IRPS4063,Power Mgmt,True,Rad-Hard Sync Buck,Space Qualification DB,Prototyping Only,https://itc.com
+SPACE-0041,Vorpal,SLP-100,Supervisor,True,Supply Monitor,Space Qualification DB,Prototyping Only,https://vorpal.com
+SPACE-0042,Maxim,DS1343,Memory,True,"SPI RTC, Rad-Hard",Space Qualification DB,Prototyping Only,https://maxim.com
+,Microchip,RTG4_DSP,FPGA,True,"Radiation-Hardened FPGA with DSP, 150k LE, Space-grade",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Microchip,RTG4_SX72,FPGA,True,"Rad-Hard FPGA, 72k LE, Low Power, Flight Proven",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,STMicroelectronics,STM32H743,Microcontroller,True,"Radiation-Hardened MCU, 32-bit ARM Cortex-M7",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Xilinx,SPARTAN6_RT,FPGA,True,"Rad-Tolerant FPGA, 16k LE, Aerospace Grade",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Renesas,RH850_GH,Microcontroller,True,"Radiation-Hardened MCU, 32-bit RH850, Flight Proven",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,onsemi,NCP373,Power Management,True,"Rad-Hard Load Switch, 5A, Aerospace Qualified",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Analog Devices,ADR4513,Analog,True,"Precision Voltage Reference, Rad-Hard, Ultralow Noise",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Linear Tech,LT3972,Power Management,True,"Radiation-Hardened DC-DC Converter, 600mA",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,TI,OPA2330,Analog,True,"Radiation-Hardened Operational Amplifier, Precision",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Microchip,M7V_FPGA,FPGA,True,"Rad-Hard FPGA, Flash-based, 128k LE, Space Mission Ready",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,STMicroelectronics,SPC58NH70,Microcontroller,True,"Rad-Hard MCU, 1.6M Flash, Automotive/Space",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Xilinx,KINTEX7T_RH,FPGA,True,"Rad-Tolerant FPGA, 325k LE, High Performance",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Renesas,RX23T_RH,Microcontroller,True,"Radiation-Hardened MCU, 32-bit, CAN, FlexRay",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,onsemi,MC33179,Analog,True,"Radiation-Hardened Opamp, Dual, Precision",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Analog Devices,ADA4625,Analog,True,"Rad-Hard Precision ADC Driver, Rail-to-Rail",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FM1808,Memory,True,"SRAM, 256k, Rad-Hard, Space Flight Proven",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FM4148,Diode,True,"Switching Diode, Radiation-Hardened",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FM5527,Logic,True,"CMOS Logic Array, Rad-Hard",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FDR4-2GB,Memory,True,"DDR4 SDRAM, 2GB, Radiation-Hardened, Space-Grade",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FDR4-4GB,Memory,True,"DDR4 SDRAM, 4GB, Rad-Hard, Flight Proven",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FDR4-8GB,Memory,True,"DDR4 SDRAM, 8GB, Radiation-Hardened, High Capacity",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FMRAM-512MB,Memory,True,"MRAM, 512MB, Radiation-Hardened, Non-Volatile",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Frontgrade,FMRAM-1GB,Memory,True,"MRAM, 1GB, Rad-Hard, Fast Access, Space Flight",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Teledyne,TRAD2025,ADC,True,"12-bit ADC, Radiation-Hardened, 10 MSPS",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Teledyne,TRAD8505,Op-Amp,True,"Precision Op-Amp, Low Noise, Space-Grade",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Teledyne,TRAD5507,Comparator,True,"Analog Comparator, Rad-Hard",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Teledyne,TDDR4-2GB,Memory,True,"DDR4 SDRAM, 2GB, Radiation-Hardened, Space-Grade",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Teledyne,TDDR4-4GB,Memory,True,"DDR4 SDRAM, 4GB, Rad-Hard, Flight Proven",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,
+,Teledyne,TDDR4-8GB,Memory,True,"DDR4 SDRAM, 8GB, Radiation-Hardened, High Capacity",AI Sweep Discovery - 2026-02-11 11:47:16,Discovery Phase,

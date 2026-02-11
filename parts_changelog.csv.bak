@@ -1,0 +1,38 @@
+Timestamp,Manufacturer,Part_Number,Change_Type,Old_Value,New_Value
+2026-02-10 16:26:08,Microchip,RTG4,Specs,"150k LE, 300MHz, Radiation-Hardened","Radiation-Hardened FPGA, 150k LE, Enhanced Power Management, New Binning Available"
+2026-02-10 16:26:08,Microchip,RTG4,Status,Flight Proven,Flight Proven - Production
+2026-02-10 16:26:08,Renesas,ISL71091,Specs,"Voltage Reference, Precision, Rad-Hard","Precision Voltage Reference, Rad-Hard, Temperature Compensated, ±0.8% Accuracy"
+2026-02-10 16:26:08,Renesas,ISL71091,Status,Prototyping Only,Flight Proven - Production
+2026-02-11 11:47:16,Microchip,RTG4,Specs,"150k LE, 300MHz, Radiation-Hardened","Radiation-Hardened FPGA, 150k LE, Enhanced Power Management, New Binning Available"
+2026-02-11 11:47:16,Microchip,RTG4,Status,Flight Proven,Flight Proven - Production
+2026-02-11 11:47:16,Renesas,ISL71091,Specs,"Voltage Reference, Precision, Rad-Hard","Precision Voltage Reference, Rad-Hard, Temperature Compensated, ±0.8% Accuracy"
+2026-02-11 11:47:16,Renesas,ISL71091,Status,Prototyping Only,Flight Proven - Production
+2026-02-11 11:47:16,Microchip,RTG4_DSP,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Microchip,RTG4_SX72,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,STMicroelectronics,STM32H743,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Xilinx,SPARTAN6_RT,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Renesas,RH850_GH,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,onsemi,NCP373,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Analog Devices,ADR4513,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Linear Tech,LT3972,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,TI,OPA2330,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Microchip,M7V_FPGA,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,STMicroelectronics,SPC58NH70,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Xilinx,KINTEX7T_RH,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Renesas,RX23T_RH,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,onsemi,MC33179,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Analog Devices,ADA4625,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FM1808,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FM4148,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FM5527,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FDR4-2GB,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FDR4-4GB,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FDR4-8GB,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FMRAM-512MB,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Frontgrade,FMRAM-1GB,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Teledyne,TRAD2025,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Teledyne,TRAD8505,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Teledyne,TRAD5507,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Teledyne,TDDR4-2GB,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Teledyne,TDDR4-4GB,New_Part,N/A,Added via AI Sweep
+2026-02-11 11:47:16,Teledyne,TDDR4-8GB,New_Part,N/A,Added via AI Sweep

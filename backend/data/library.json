@@ -1,0 +1,15 @@
+[
+  {
+    "Part_Number": "HS9-5104RH",
+    "Manufacturer": "Renesas",
+    "Value": null,
+    "Tolerance": null,
+    "Voltage_Rating": "5 V",
+    "Package_Type": "CLCC-28",
+    "Pin_Count": "28",
+    "Thermal_Resistance": null,
+    "Summary": null,
+    "source_file": "test.pdf",
+    "added_at": "2026-03-10T03:27:04.611306+00:00"
+  }
+]

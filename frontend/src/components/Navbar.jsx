@@ -3,13 +3,13 @@ import { NavLink } from 'react-router-dom'
 import { Satellite, Menu, X } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { to: '/',              label: 'Librarian',    sublabel: 'Phase 1' },
-  { to: '/fpga',          label: 'FPGA Bridge',  sublabel: 'Phase 2' },
-  { to: '/constraints',   label: 'SI/PI Constr.', sublabel: 'Phase 3' },
-  { to: '/block-diagram', label: 'Block Diagram', sublabel: 'Phase 4' },
-  { to: '/com',           label: 'COM Analysis', sublabel: 'Phase 5' },
-  { to: '/bom',           label: 'BOM Analyzer', sublabel: 'Phase 6' },
-  { to: '/drc',           label: 'Schematic DRC', sublabel: 'Phase 7' },
+  { to: '/',              label: 'Librarian' },
+  { to: '/fpga',          label: 'FPGA Bridge' },
+  { to: '/constraints',   label: 'SI/PI Constr.' },
+  { to: '/block-diagram', label: 'Block Diagram' },
+  { to: '/com',           label: 'COM Analysis' },
+  { to: '/bom',           label: 'BOM Analyzer' },
+  { to: '/drc',           label: 'Schematic DRC' },
 ]
 
 export default function Navbar() {
@@ -50,7 +50,6 @@ export default function Navbar() {
                 }
               >
                 {item.label}
-                <span className="ml-1 text-xs opacity-60">{item.sublabel}</span>
               </NavLink>
             ))}
           </div>
@@ -86,7 +85,6 @@ export default function Navbar() {
                 }
               >
                 <span>{item.label}</span>
-                <span className="text-xs opacity-50 ml-2">{item.sublabel}</span>
               </NavLink>
             ))}
           </div>

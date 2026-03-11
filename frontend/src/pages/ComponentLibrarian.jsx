@@ -439,6 +439,14 @@ function PartCard({ part, onProgramChange }) {
         {part.Summary && (
           <p className="text-xs text-muted-foreground leading-relaxed pt-1">{part.Summary}</p>
         )}
+        {part.variants?.length > 0 && (
+          <div className="flex items-center gap-1.5 pt-1.5">
+            <Package className="h-3 w-3 text-primary shrink-0" />
+            <span className="text-[10px] text-muted-foreground font-medium">
+              +{part.variants.length} variant{part.variants.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
         {part.needs_datasheet && (
           <div className="flex items-center gap-1.5 pt-1.5">
             <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Upload, FileText, AlertTriangle, Cpu, Package,
-  Thermometer, Radiation, Zap, Box, Hash, Gauge, Shield, Clipboard,
+  Thermometer, Radiation, Zap, Box, Hash, Gauge, Shield, Clipboard, Layers,
 } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -392,6 +392,66 @@ export default function PartDetail() {
 
         {/* Right columns — engineering data */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Part Number Variants */}
+          {part.variants?.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-primary" />
+                  Part Number Variants
+                  <span className="text-xs text-muted-foreground font-normal ml-1">
+                    ({part.variants.length} alternate ordering{part.variants.length !== 1 ? 's' : ''})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                  These part numbers are covered by the same datasheet and share the same base design.
+                  Differences in package, pin count, or ratings are noted below.
+                </p>
+                <div className="space-y-2">
+                  {part.variants.map((v) => (
+                    <div
+                      key={v.Part_Number}
+                      className="rounded-md border border-border bg-secondary/20 px-4 py-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                        <span className="text-sm font-semibold text-foreground font-mono">
+                          {v.Part_Number}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {v.Package_Type && (
+                            <span className="inline-block rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                              {v.Package_Type}
+                            </span>
+                          )}
+                          {v.Pin_Count && (
+                            <span className="inline-block rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                              {v.Pin_Count}-pin
+                            </span>
+                          )}
+                          {v.Radiation_TID && v.Radiation_TID !== part.Radiation_TID && (
+                            <span className="inline-block rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-400">
+                              TID: {v.Radiation_TID}
+                            </span>
+                          )}
+                          {v.Thermal_Resistance && v.Thermal_Resistance !== part.Thermal_Resistance && (
+                            <span className="inline-block rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                              θJA: {v.Thermal_Resistance}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {v.Summary && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">{v.Summary}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Engineering Parameters</CardTitle>

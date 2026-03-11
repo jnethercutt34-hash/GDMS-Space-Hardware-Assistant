@@ -1,13 +1,16 @@
 """Persistent part library — JSON file backed, thread-safe.
 
-Parts are keyed by Part_Number. Re-uploading a datasheet that contains a
-part already in the library updates that entry in place.
+Parts are keyed by Part_Number. When a datasheet contains multiple part
+number variants (different packages of the same IC), they are consolidated
+into a single library entry under a primary part number, with the other
+variants stored in a ``variants`` list.
 """
 import json
 import os
+import re
 import threading
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 _LIBRARY_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "library.json")
 _lock = threading.Lock()
@@ -26,29 +29,128 @@ def _save(parts: List[Dict[str, Any]]) -> None:
         json.dump(parts, f, indent=2, ensure_ascii=False)
 
 
-def upsert_parts(new_parts: List[Dict[str, Any]], source_file: str) -> int:
-    """Add or update parts from a newly processed datasheet.
+# ---------------------------------------------------------------------------
+# Variant consolidation
+# ---------------------------------------------------------------------------
 
-    Returns the number of parts that were newly added (not updates).
+# Military/SMD ordering numbers — these should be variants, not primary
+_MILITARY_PN = re.compile(r"^5962[A-Z]?\d", re.IGNORECASE)
+# Engineering samples / evaluation modules
+_SAMPLE_PN = re.compile(r"(HFT|/EM|EVM|DBV|DBG)\b", re.IGNORECASE)
+
+# Fields that can differ between variants
+_VARIANT_FIELDS = [
+    "Part_Number", "Package_Type", "Pin_Count",
+    "Radiation_TID", "Thermal_Resistance",
+]
+
+
+def _pick_primary(parts: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """Choose the best primary part number from a list of datasheet variants.
+
+    Heuristic priority:
+      1. Non-military, non-sample part numbers first
+      2. Prefer shorter part numbers (more generic / base part)
+      3. Fall back to the first item if all look equally specific
     """
+    if len(parts) <= 1:
+        return parts[0], []
+
+    scored = []
+    for i, p in enumerate(parts):
+        pn = p.get("Part_Number", "")
+        score = 0
+        if _MILITARY_PN.match(pn):
+            score += 100  # push military PNs down
+        if _SAMPLE_PN.search(pn):
+            score += 50   # push samples down
+        score += len(pn)  # prefer shorter names
+        scored.append((score, i, p))
+    scored.sort(key=lambda x: (x[0], x[1]))
+
+    primary = scored[0][2]
+    variants = [s[2] for s in scored[1:]]
+    return primary, variants
+
+
+def _build_variant_entry(variant: Dict[str, Any], primary: Dict[str, Any]) -> Dict[str, Any]:
+    """Build a compact variant record showing only the fields that differ or matter."""
+    entry: Dict[str, Any] = {"Part_Number": variant["Part_Number"]}
+    for field in _VARIANT_FIELDS:
+        if field == "Part_Number":
+            continue
+        v_val = variant.get(field)
+        p_val = primary.get(field)
+        if v_val and v_val != p_val:
+            entry[field] = v_val
+    # If the variant has a Summary that differs, include it
+    v_sum = variant.get("Summary")
+    p_sum = primary.get("Summary")
+    if v_sum and v_sum != p_sum:
+        entry["Summary"] = v_sum
+    return entry
+
+
+def consolidate_variants(parts: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Consolidate a list of extracted parts into a single entry with variants.
+
+    Returns the consolidated entry dict ready for library storage.
+    """
+    if not parts:
+        return {}
+
+    primary, variants = _pick_primary(parts)
+    entry = dict(primary)
+
+    if variants:
+        entry["variants"] = [
+            _build_variant_entry(v, primary) for v in variants
+        ]
+    return entry
+
+
+def upsert_parts(new_parts: List[Dict[str, Any]], source_file: str) -> int:
+    """Consolidate and save parts from a newly processed datasheet.
+
+    Multiple part number variants from the same datasheet are merged into
+    a single library entry. Returns the number of entries newly added.
+    """
+    if not new_parts:
+        return 0
+
     timestamp = datetime.now(timezone.utc).isoformat()
+
+    # Consolidate all extracted rows into one entry
+    consolidated = consolidate_variants(new_parts)
+    if not consolidated.get("Part_Number"):
+        return 0
+
+    consolidated["source_file"] = source_file
+    consolidated["added_at"] = timestamp
+    consolidated["needs_datasheet"] = False
+
+    pn = consolidated["Part_Number"]
+
     with _lock:
         parts = _load()
         index: Dict[str, int] = {p["Part_Number"]: i for i, p in enumerate(parts)}
-        added = 0
-        for part in new_parts:
-            pn = part.get("Part_Number")
-            if not pn:
-                continue
-            entry = {**part, "source_file": source_file, "added_at": timestamp, "needs_datasheet": False}
-            if pn in index:
-                parts[index[pn]] = entry  # update in place
-            else:
-                parts.append(entry)
-                index[pn] = len(parts) - 1
-                added += 1
-        _save(parts)
-    return added
+
+        # Also remove any old entries that match variant PNs (cleanup from
+        # before consolidation was implemented)
+        variant_pns = {v["Part_Number"] for v in consolidated.get("variants", [])}
+        if variant_pns:
+            parts = [p for p in parts if p["Part_Number"] not in variant_pns]
+            # Rebuild index after removal
+            index = {p["Part_Number"]: i for i, p in enumerate(parts)}
+
+        if pn in index:
+            parts[index[pn]] = consolidated
+            _save(parts)
+            return 0
+        else:
+            parts.append(consolidated)
+            _save(parts)
+            return 1
 
 
 def upsert_placeholder_parts(
@@ -114,13 +216,17 @@ def patch_part(part_number: str, updates: Dict[str, Any]) -> Dict[str, Any] | No
 
 
 def search(query: str) -> List[Dict[str, Any]]:
-    """Case-insensitive substring search across all text fields."""
+    """Case-insensitive substring search across all text fields, including variants."""
     q = query.lower().strip()
     if not q:
         return _load()
     results = []
     for part in _load():
-        haystack = " ".join(str(v) for v in part.values() if v).lower()
+        # Build haystack from all top-level values
+        haystack = " ".join(str(v) for v in part.values() if v and not isinstance(v, list)).lower()
+        # Also include variant part numbers in the search
+        for variant in part.get("variants", []):
+            haystack += " " + " ".join(str(v) for v in variant.values() if v).lower()
         if q in haystack:
             results.append(part)
     return results

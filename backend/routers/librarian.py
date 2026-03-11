@@ -39,8 +39,10 @@ async def upload_datasheet(file: UploadFile = File(...)):
 
     rows_dicts = [row.model_dump() for row in rows]
 
-    # Auto-save every successfully extracted component to the library
+    # Consolidate variants and save as a single library entry
+    consolidated = None
     if rows_dicts:
+        consolidated = part_library.consolidate_variants(rows_dicts)
         part_library.upsert_parts(rows_dicts, source_file=file.filename)
 
     return {
@@ -48,6 +50,8 @@ async def upload_datasheet(file: UploadFile = File(...)):
         "page_count": extracted["page_count"],
         "extracted_text": extracted["text"],
         "rows": rows_dicts,
+        "primary_part": consolidated.get("Part_Number") if consolidated else None,
+        "variant_count": len(consolidated.get("variants", [])) if consolidated else 0,
         "warnings": ai_warnings,
     }
 

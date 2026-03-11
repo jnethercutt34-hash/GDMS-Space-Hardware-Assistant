@@ -5,7 +5,7 @@ import { Satellite, Menu, X } from 'lucide-react'
 const NAV_ITEMS = [
   { to: '/librarian',      label: 'Librarian' },
   { to: '/fpga',            label: 'FPGA Bridge' },
-  { to: '/constraints',     label: 'SI/PI Constr.' },
+  { to: '/constraints',     label: 'SI/PI Guide' },
   { to: '/block-diagram',   label: 'Block Diagram' },
   { to: '/com',             label: 'COM Analysis' },
   { to: '/bom',             label: 'BOM Analyzer' },

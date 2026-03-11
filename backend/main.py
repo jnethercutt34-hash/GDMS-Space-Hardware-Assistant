@@ -14,7 +14,7 @@ logging.basicConfig(
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import librarian, fpga, constraint, block_diagram, com, bom, drc
+from routers import librarian, fpga, constraint, block_diagram, com, bom, drc, sipi
 
 app = FastAPI(
     title="GDMS Space Hardware Assistant API",
@@ -37,6 +37,7 @@ app.include_router(block_diagram.router, prefix="/api", tags=["block_diagram"])
 app.include_router(com.router, prefix="/api", tags=["com"])
 app.include_router(bom.router, prefix="/api", tags=["bom"])
 app.include_router(drc.router, prefix="/api", tags=["drc"])
+app.include_router(sipi.router, prefix="/api", tags=["sipi"])
 
 
 @app.get("/health")

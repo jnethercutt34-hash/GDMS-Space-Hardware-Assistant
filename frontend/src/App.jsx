@@ -3,7 +3,7 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import ComponentLibrarian from './pages/ComponentLibrarian'
 import FpgaBridge from './pages/FpgaBridge'
-import ConstraintEditor from './pages/ConstraintEditor'
+import SiPiGuide from './pages/SiPiGuide'
 import BlockDiagram from './pages/BlockDiagram'
 import ComAnalysis from './pages/ComAnalysis'
 import BomAnalyzer from './pages/BomAnalyzer'
@@ -21,7 +21,7 @@ export default function App() {
             <Route path="/librarian"      element={<ComponentLibrarian />} />
             <Route path="/part/:partNumber" element={<PartDetail />} />
             <Route path="/fpga"           element={<FpgaBridge />} />
-            <Route path="/constraints"    element={<ConstraintEditor />} />
+            <Route path="/constraints"    element={<SiPiGuide />} />
             <Route path="/block-diagram"  element={<BlockDiagram />} />
             <Route path="/com"            element={<ComAnalysis />} />
             <Route path="/bom"            element={<BomAnalyzer />} />

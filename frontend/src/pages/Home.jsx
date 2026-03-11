@@ -41,14 +41,15 @@ const MODULES = [
   {
     to: '/constraints',
     icon: Ruler,
-    title: 'SI/PI Constraint Editor',
+    title: 'SI/PI Design Guide',
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
     summary:
-      'Paste or upload signal-integrity specs and let AI convert them into structured constraint rules — impedance, length matching, spacing, and differential pair targets ready for your constraint system.',
+      'Set proactive, spec-driven SI/PI design rules before HyperLynx simulation. Select your board interfaces, get industry-sourced constraints (impedance, length matching, crosstalk spacing, via budgets), estimate COM-informed channel loss budgets, and ask the AI advisor for tailored guidance.',
     bullets: [
-      'AI parses free-text SI/PI requirements',
-      'Structured rule table with net-class mapping',
-      'Export Xpedition CES constraint script',
+      'Built-in knowledge base for 10+ interfaces (DDR4, PCIe, USB, SpaceWire, 1553…)',
+      'COM-informed channel loss budget calculator',
+      'AI SI/PI advisor with context-aware recommendations',
+      'Export CES constraint scripts & Markdown design rules docs',
     ],
   },
   {
@@ -228,7 +229,7 @@ export default function Home() {
             <p className="font-semibold text-foreground mb-1">2. Design & constrain</p>
             <p>
               Use the <strong>Block Diagram Builder</strong> to map your system architecture, then
-              define signal-integrity rules in the <strong>SI/PI Constraint Editor</strong>.
+              define signal-integrity rules in the <strong>SI/PI Design Guide</strong>.
               Check your FPGA pin map with the <strong>FPGA I/O Bridge</strong>.
             </p>
           </div>

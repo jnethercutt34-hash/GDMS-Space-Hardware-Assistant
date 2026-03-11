@@ -1,7 +1,8 @@
 import re
-from typing import List
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from models.component import ComponentData
@@ -10,24 +11,32 @@ from services.ai_extractor import extract_components_from_text
 from services.xpedition_stub import simulate_xpedition_push
 from services import part_library
 from services.bom_analyzer import parse_bom_csv
+from services import datasheet_store
 
 router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
-# POST /api/upload-datasheet
+# POST /api/upload-datasheet  (extract only — does NOT auto-save to library)
 # ---------------------------------------------------------------------------
 
 @router.post("/upload-datasheet")
 async def upload_datasheet(file: UploadFile = File(...)):
-    """Accept a PDF datasheet, extract its text, run AI parameter extraction,
-    and return the validated Databook rows alongside the raw text.
-    Extracted parts are automatically saved to the part library."""
+    """Accept a PDF datasheet, extract text, run AI parameter extraction.
 
+    The PDF is saved to the datasheet store immediately (so it's available
+    for download later), but extracted parts are NOT auto-saved to the
+    library — the frontend must call POST /api/library/accept-parts to
+    commit reviewed parts.
+    """
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
     contents = await file.read()
+
+    # Save PDF to datasheet store
+    stored_filename = datasheet_store.save(contents, file.filename)
+
     extracted = extract_text_from_pdf(contents)
 
     try:
@@ -39,21 +48,67 @@ async def upload_datasheet(file: UploadFile = File(...)):
 
     rows_dicts = [row.model_dump() for row in rows]
 
-    # Consolidate variants and save as a single library entry
+    # Consolidate variants for preview (but don't save yet)
     consolidated = None
     if rows_dicts:
-        consolidated = part_library.consolidate_variants(rows_dicts)
-        part_library.upsert_parts(rows_dicts, source_file=file.filename)
+        consolidated = part_library.consolidate_variants(rows_dicts, source_file=stored_filename)
 
     return {
         "filename": file.filename,
+        "stored_filename": stored_filename,
         "page_count": extracted["page_count"],
         "extracted_text": extracted["text"],
         "rows": rows_dicts,
+        "consolidated": consolidated,
         "primary_part": consolidated.get("Part_Number") if consolidated else None,
         "variant_count": len(consolidated.get("variants", [])) if consolidated else 0,
         "warnings": ai_warnings,
     }
+
+
+# ---------------------------------------------------------------------------
+# POST /api/library/accept-parts  (commit reviewed parts to library)
+# ---------------------------------------------------------------------------
+
+class AcceptPartsRequest(BaseModel):
+    parts: List[Dict[str, Any]]
+    source_file: str
+    datasheet_file: str | None = None
+
+
+@router.post("/library/accept-parts")
+def accept_parts(payload: AcceptPartsRequest):
+    """Save engineer-reviewed parts to the library.
+
+    Called after upload-datasheet when the engineer accepts the extraction.
+    """
+    if not payload.parts:
+        raise HTTPException(status_code=400, detail="No parts provided.")
+
+    added = part_library.upsert_parts(
+        payload.parts,
+        source_file=payload.source_file,
+        datasheet_file=payload.datasheet_file,
+    )
+
+    return {
+        "status": "accepted",
+        "added": added,
+        "source_file": payload.source_file,
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/datasheets/{filename}  (serve stored PDF)
+# ---------------------------------------------------------------------------
+
+@router.get("/datasheets/{filename}")
+def get_datasheet(filename: str):
+    """Serve a stored PDF datasheet file."""
+    path = datasheet_store.get_path(filename)
+    if path is None:
+        raise HTTPException(status_code=404, detail="Datasheet not found.")
+    return FileResponse(path, media_type="application/pdf", filename=filename)
 
 
 # ---------------------------------------------------------------------------

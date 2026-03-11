@@ -1,36 +1,43 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Upload, Cpu, CheckCircle, Search, Library, Package,
-  FileSpreadsheet, AlertTriangle, Plus,
+  FileSpreadsheet, AlertTriangle, Plus, X, Check, Loader2, FileText,
 } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import UploadZone from '../components/UploadZone'
-import DataTable from '../components/DataTable'
 import SectionLabel from '../components/SectionLabel'
 
+// ─── Queue status constants ──────────────────────────────────────────────────
+const Q_PENDING  = 'pending'
+const Q_RUNNING  = 'running'
+const Q_DONE     = 'done'
+const Q_ERROR    = 'error'
+
 export default function ComponentLibrarian() {
-  const [extractedData, setExtractedData] = useState(null)
-  const [isLoading, setIsLoading]         = useState(false)
-  const [error, setError]                 = useState(null)
-
-  const [pushResult, setPushResult] = useState(null)
-  const [isPushing, setIsPushing]   = useState(false)
-  const [pushError, setPushError]   = useState(null)
-
+  // ── Library state ────────────────────────────────────────────────────────
   const [libraryParts, setLibraryParts]   = useState([])
   const [searchQuery, setSearchQuery]     = useState('')
   const [isSearching, setIsSearching]     = useState(false)
 
-  // BOM import
+  // ── Upload queue ─────────────────────────────────────────────────────────
+  // Each item: { id, file, status, result, error }
+  const [queue, setQueue] = useState([])
+  const processingRef = useRef(false)
+
+  // ── Staging area (extracted but not yet accepted) ────────────────────────
+  // Each item: { id, filename, storedFilename, consolidated, rows, warnings, accepted }
+  const [staged, setStaged] = useState([])
+
+  // ── BOM import ───────────────────────────────────────────────────────────
   const [bomResult, setBomResult]       = useState(null)
   const [isBomLoading, setIsBomLoading] = useState(false)
   const [bomError, setBomError]         = useState(null)
   const [bomDragOver, setBomDragOver]   = useState(false)
 
-  // Load library on mount
+  // ── Library fetching ─────────────────────────────────────────────────────
   const fetchLibrary = useCallback(async (query = '') => {
     setIsSearching(true)
     try {
@@ -49,81 +56,121 @@ export default function ComponentLibrarian() {
 
   useEffect(() => { fetchLibrary() }, [fetchLibrary])
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => fetchLibrary(searchQuery), 300)
     return () => clearTimeout(timer)
   }, [searchQuery, fetchLibrary])
 
-  const handleUpload = async (file) => {
-    setIsLoading(true)
-    setError(null)
-    setExtractedData(null)
-    setPushResult(null)
-    setPushError(null)
+  // ── Queue processing ─────────────────────────────────────────────────────
+  const processQueue = useCallback(async (items) => {
+    if (processingRef.current) return
+    processingRef.current = true
 
-    const formData = new FormData()
-    formData.append('file', file)
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.status !== Q_PENDING) continue
 
-    try {
-      const res = await fetch('/api/upload-datasheet', { method: 'POST', body: formData })
-      if (!res.ok) {
-        const text = await res.text()
-        let detail = 'Upload failed'
-        try { detail = JSON.parse(text).detail || detail } catch { detail = text || detail }
-        throw new Error(detail)
+      // Mark running
+      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: Q_RUNNING } : q))
+
+      try {
+        const formData = new FormData()
+        formData.append('file', item.file)
+        const res = await fetch('/api/upload-datasheet', { method: 'POST', body: formData })
+        if (!res.ok) {
+          const text = await res.text()
+          let detail = 'Upload failed'
+          try { detail = JSON.parse(text).detail || detail } catch { detail = text || detail }
+          throw new Error(detail)
+        }
+        const data = await res.json()
+
+        // Mark done
+        setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: Q_DONE, result: data } : q))
+
+        // Add to staging if parts were found
+        if (data.consolidated || data.rows?.length) {
+          setStaged(prev => [...prev, {
+            id: item.id,
+            filename: data.filename,
+            storedFilename: data.stored_filename,
+            consolidated: data.consolidated,
+            rows: data.rows,
+            warnings: data.warnings,
+            accepted: null, // null = pending review
+          }])
+        }
+      } catch (e) {
+        setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: Q_ERROR, error: e.message } : q))
       }
-      const data = await res.json()
-      setExtractedData(data)
-      // Refresh library to show newly added parts
-      fetchLibrary(searchQuery)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setIsLoading(false)
     }
-  }
 
-  const handlePushToXpedition = async () => {
-    if (!extractedData?.rows?.length) return
-    setIsPushing(true)
-    setPushResult(null)
-    setPushError(null)
+    processingRef.current = false
+  }, [])
+
+  const handleMultiUpload = useCallback((files) => {
+    const newItems = files.map((file, i) => ({
+      id: `${Date.now()}-${i}`,
+      file,
+      status: Q_PENDING,
+      result: null,
+      error: null,
+    }))
+    setQueue(prev => {
+      const updated = [...prev, ...newItems]
+      // Kick off processing after state update
+      setTimeout(() => processQueue(updated), 0)
+      return updated
+    })
+  }, [processQueue])
+
+  // ── Accept / Reject ──────────────────────────────────────────────────────
+  const handleAccept = async (stagedItem) => {
+    const parts = stagedItem.consolidated
+      ? [stagedItem.consolidated]
+      : stagedItem.rows
 
     try {
-      const res = await fetch('/api/push-to-databook', {
+      const res = await fetch('/api/library/accept-parts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows: extractedData.rows }),
+        body: JSON.stringify({
+          parts: stagedItem.rows,
+          source_file: stagedItem.filename,
+          datasheet_file: stagedItem.storedFilename,
+        }),
       })
-      if (!res.ok) {
-        const text = await res.text()
-        let detail = 'Push failed'
-        try { detail = JSON.parse(text).detail || detail } catch { detail = text || detail }
-        throw new Error(detail)
-      }
-      setPushResult(await res.json())
+      if (!res.ok) throw new Error('Failed to accept parts')
+
+      setStaged(prev => prev.map(s => s.id === stagedItem.id ? { ...s, accepted: true } : s))
+      fetchLibrary(searchQuery)
     } catch (e) {
-      setPushError(e.message)
-    } finally {
-      setIsPushing(false)
+      console.error('Accept failed:', e)
     }
   }
 
-  // Update a part's program in local state after PATCH succeeds
+  const handleReject = (stagedItem) => {
+    setStaged(prev => prev.map(s => s.id === stagedItem.id ? { ...s, accepted: false } : s))
+  }
+
+  const clearCompleted = () => {
+    setQueue(prev => prev.filter(q => q.status === Q_PENDING || q.status === Q_RUNNING))
+    setStaged(prev => prev.filter(s => s.accepted === null))
+  }
+
+  // ── Program change (inline on card) ──────────────────────────────────────
   const handleProgramChange = (partNumber, program) => {
     setLibraryParts(prev =>
       prev.map(p => p.Part_Number === partNumber ? { ...p, Program: program } : p)
     )
   }
 
-  // BOM import handler
+  // ── BOM import ───────────────────────────────────────────────────────────
   const handleBomImport = async (file) => {
     if (!file) return
     setIsBomLoading(true)
     setBomError(null)
     setBomResult(null)
-
     const formData = new FormData()
     formData.append('file', file)
     try {
@@ -134,8 +181,7 @@ export default function ComponentLibrarian() {
         try { detail = JSON.parse(text).detail || detail } catch { detail = text || detail }
         throw new Error(detail)
       }
-      const data = await res.json()
-      setBomResult(data)
+      setBomResult(await res.json())
       fetchLibrary(searchQuery)
     } catch (e) {
       setBomError(e.message)
@@ -151,12 +197,15 @@ export default function ComponentLibrarian() {
     handleBomImport(e.dataTransfer.files?.[0])
   }
 
-  const hasRows = Boolean(extractedData?.rows?.length)
+  // ── Derived state ────────────────────────────────────────────────────────
+  const isProcessing = queue.some(q => q.status === Q_RUNNING)
+  const pendingReview = staged.filter(s => s.accepted === null)
+  const hasCompletedItems = staged.some(s => s.accepted !== null) || queue.some(q => q.status === Q_ERROR)
 
   return (
     <div>
       {/* ================================================================
-          HERO — Component Library
+          HERO
           ================================================================ */}
       <section className="mb-10">
         <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
@@ -172,7 +221,7 @@ export default function ComponentLibrarian() {
       </section>
 
       {/* ================================================================
-          PART LIBRARY — search + grid (the main feature)
+          PART LIBRARY
           ================================================================ */}
       <section className="mb-14">
         <div className="flex items-center justify-between mb-3">
@@ -182,7 +231,6 @@ export default function ComponentLibrarian() {
           </span>
         </div>
 
-        {/* Search bar */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
@@ -194,7 +242,6 @@ export default function ComponentLibrarian() {
           />
         </div>
 
-        {/* Results */}
         {isSearching ? (
           <p className="text-sm text-muted-foreground">Searching…</p>
         ) : libraryParts.length === 0 ? (
@@ -216,38 +263,94 @@ export default function ComponentLibrarian() {
       </section>
 
       {/* ================================================================
-          ADD PARTS — PDF upload + BOM import side by side
+          REVIEW STAGING — pending accept/reject
+          ================================================================ */}
+      {(pendingReview.length > 0 || hasCompletedItems) && (
+        <section className="mb-14">
+          <div className="flex items-center justify-between mb-3">
+            <SectionLabel icon={<Cpu className="h-4 w-4" />} step="" label="Review Extracted Parts" />
+            {hasCompletedItems && (
+              <button
+                onClick={clearCompleted}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Clear completed
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {staged.map((item) => (
+              <StagedPartCard
+                key={item.id}
+                item={item}
+                onAccept={() => handleAccept(item)}
+                onReject={() => handleReject(item)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ================================================================
+          ADD PARTS — upload + BOM side by side
           ================================================================ */}
       <section className="mb-14">
         <SectionLabel icon={<Plus className="h-4 w-4" />} step="" label="Add Parts to Library" />
 
         <div className="grid gap-6 md:grid-cols-2">
-          {/* PDF Datasheet Upload */}
+          {/* PDF Upload */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Upload className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-heading">Upload PDF Datasheet</CardTitle>
+                <CardTitle className="text-sm font-heading">Upload PDF Datasheets</CardTitle>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                Extract component parameters from a PDF datasheet using AI. Extracted
-                parts are automatically added to the library.
+                Drop one or more PDF datasheets. Each is processed by AI to extract component
+                parameters. You'll review and accept parts before they're added to the library.
               </p>
             </CardHeader>
             <CardContent>
-              <UploadZone onUpload={handleUpload} isLoading={isLoading} />
-              {error && (
-                <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-                  <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
-                    Upload Error
-                  </p>
-                  <p className="text-xs text-muted-foreground">{error}</p>
+              <UploadZone onUpload={handleMultiUpload} isLoading={isProcessing} multiple />
+
+              {/* Queue progress */}
+              {queue.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {queue.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 rounded-md bg-secondary/20 px-3 py-2">
+                      {item.status === Q_PENDING && (
+                        <div className="h-3 w-3 rounded-full bg-muted-foreground/30 shrink-0" />
+                      )}
+                      {item.status === Q_RUNNING && (
+                        <Loader2 className="h-3 w-3 text-primary animate-spin shrink-0" />
+                      )}
+                      {item.status === Q_DONE && (
+                        <CheckCircle className="h-3 w-3 text-emerald-400 shrink-0" />
+                      )}
+                      {item.status === Q_ERROR && (
+                        <X className="h-3 w-3 text-destructive shrink-0" />
+                      )}
+                      <span className="text-xs text-foreground truncate flex-1">{item.file.name}</span>
+                      {item.status === Q_RUNNING && (
+                        <span className="text-[10px] text-primary animate-pulse">Processing…</span>
+                      )}
+                      {item.status === Q_DONE && item.result && (
+                        <span className="text-[10px] text-emerald-400">
+                          {item.result.rows?.length || 0} part{(item.result.rows?.length || 0) !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {item.status === Q_ERROR && (
+                        <span className="text-[10px] text-destructive truncate max-w-[200px]">{item.error}</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* BOM CSV Import */}
+          {/* BOM Import */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
@@ -270,13 +373,7 @@ export default function ComponentLibrarian() {
                 ].join(' ')}
                 onClick={() => document.getElementById('bom-import-input').click()}
               >
-                <input
-                  id="bom-import-input"
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={handleBomFileInput}
-                />
+                <input id="bom-import-input" type="file" accept=".csv" className="hidden" onChange={handleBomFileInput} />
                 <FileSpreadsheet className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-foreground font-medium">
                   {isBomLoading ? 'Importing BOM…' : 'Drop a BOM CSV here or click to browse'}
@@ -286,15 +383,11 @@ export default function ComponentLibrarian() {
                 </p>
               </div>
               {isBomLoading && (
-                <p className="text-xs text-muted-foreground text-center mt-3 animate-pulse">
-                  Parsing BOM and filtering ICs…
-                </p>
+                <p className="text-xs text-muted-foreground text-center mt-3 animate-pulse">Parsing BOM and filtering ICs…</p>
               )}
               {bomError && (
                 <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-                  <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
-                    Import Error
-                  </p>
+                  <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">Import Error</p>
                   <p className="text-xs text-muted-foreground">{bomError}</p>
                 </div>
               )}
@@ -302,7 +395,7 @@ export default function ComponentLibrarian() {
           </Card>
         </div>
 
-        {/* BOM Import Results */}
+        {/* BOM Results */}
         {bomResult && (
           <Card className="mt-4">
             <CardContent className="pt-6">
@@ -313,7 +406,6 @@ export default function ComponentLibrarian() {
                   <p className="text-xs text-muted-foreground">{bomResult.filename}</p>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div className="rounded-md bg-secondary/30 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-foreground">{bomResult.total_bom_lines}</p>
@@ -325,20 +417,18 @@ export default function ComponentLibrarian() {
                 </div>
                 <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-emerald-400">{bomResult.added_to_library}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Added to Library</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Added</p>
                 </div>
                 <div className="rounded-md bg-secondary/30 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-muted-foreground">{bomResult.already_in_library}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Already Existed</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Existed</p>
                 </div>
               </div>
-
               <p className="text-xs text-muted-foreground">
                 <span className="text-muted-foreground/60">{bomResult.passives_skipped} passives skipped.</span>
                 {bomResult.added_to_library > 0 && (
                   <span className="ml-1">
-                    New parts are marked <span className="text-amber-400 font-medium">Needs Datasheet</span> — 
-                    click into each part and upload its PDF datasheet to populate engineering parameters.
+                    New parts marked <span className="text-amber-400 font-medium">Needs Datasheet</span>.
                   </span>
                 )}
               </p>
@@ -346,51 +436,150 @@ export default function ComponentLibrarian() {
           </Card>
         )}
       </section>
-
-      {/* ================================================================
-          EXTRACTION RESULTS — only shown after a PDF upload
-          ================================================================ */}
-      {extractedData && (
-        <section className="mb-14">
-          <div className="flex items-center justify-between mb-3">
-            <SectionLabel icon={<Cpu className="h-4 w-4" />} step="" label="Extracted Parameters" />
-            <Button
-              onClick={handlePushToXpedition}
-              disabled={!hasRows || isPushing}
-            >
-              {isPushing ? 'Pushing…' : 'Push to Xpedition Databook →'}
-            </Button>
-          </div>
-          <Card>
-            <CardContent className="pt-6">
-              <DataTable data={extractedData} />
-            </CardContent>
-          </Card>
-          {pushError && (
-            <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-              <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
-                Push Error
-              </p>
-              <p className="text-xs text-muted-foreground">{pushError}</p>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Push Results */}
-      {pushResult && (
-        <section className="mb-14">
-          <SectionLabel icon={<CheckCircle className="h-4 w-4" />} step="" label="Xpedition Databook Push Results" />
-          <Card>
-            <CardContent className="pt-6">
-              <PushResultPanel results={pushResult.results} />
-            </CardContent>
-          </Card>
-        </section>
-      )}
     </div>
   )
 }
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Staged Part Card — accept / reject before committing to library
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StagedPartCard({ item, onAccept, onReject }) {
+  const c = item.consolidated
+  const primaryPN = c?.Part_Number || item.rows?.[0]?.Part_Number || 'Unknown'
+  const manufacturer = c?.Manufacturer || item.rows?.[0]?.Manufacturer || '—'
+  const summary = c?.Summary || item.rows?.[0]?.Summary || null
+  const variants = c?.variants || []
+  const warnings = item.warnings || []
+
+  if (item.accepted === true) {
+    return (
+      <Card className="border-emerald-500/30 bg-emerald-500/5">
+        <CardContent className="py-4 flex items-center gap-3">
+          <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-semibold text-foreground font-mono">{primaryPN}</span>
+            <span className="text-xs text-muted-foreground ml-2">— accepted, added to library</span>
+          </div>
+          <span className="text-xs text-muted-foreground">{item.filename}</span>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (item.accepted === false) {
+    return (
+      <Card className="border-border/50 bg-secondary/10 opacity-50">
+        <CardContent className="py-4 flex items-center gap-3">
+          <X className="h-5 w-5 text-muted-foreground shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-semibold text-foreground font-mono">{primaryPN}</span>
+            <span className="text-xs text-muted-foreground ml-2">— rejected</span>
+          </div>
+          <span className="text-xs text-muted-foreground">{item.filename}</span>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Pending review
+  return (
+    <Card className="border-amber-500/30 bg-amber-500/5">
+      <CardContent className="pt-5 pb-4">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-bold text-foreground font-mono">{primaryPN}</span>
+              <span className="text-xs text-muted-foreground">{manufacturer}</span>
+              {variants.length > 0 && (
+                <span className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-1.5 py-0.5">
+                  +{variants.length} variant{variants.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            {summary && (
+              <p className="text-xs text-muted-foreground leading-relaxed">{summary}</p>
+            )}
+            <p className="text-[10px] text-muted-foreground/60 mt-1">
+              Source: {item.filename}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button size="sm" className="h-7 px-3 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={onAccept}>
+              <Check className="h-3 w-3 mr-1" /> Accept
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 px-3 text-xs" onClick={onReject}>
+              <X className="h-3 w-3 mr-1" /> Reject
+            </Button>
+          </div>
+        </div>
+
+        {/* Quick specs preview */}
+        {c && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {c.Package_Type && (
+              <span className="text-[10px] rounded bg-secondary/40 px-1.5 py-0.5 text-muted-foreground">
+                {c.Package_Type}
+              </span>
+            )}
+            {c.Pin_Count && (
+              <span className="text-[10px] rounded bg-secondary/40 px-1.5 py-0.5 text-muted-foreground">
+                {c.Pin_Count}-pin
+              </span>
+            )}
+            {c.Voltage_Rating && (
+              <span className="text-[10px] rounded bg-secondary/40 px-1.5 py-0.5 text-muted-foreground">
+                {c.Voltage_Rating}
+              </span>
+            )}
+            {c.Radiation_TID && (
+              <span className="text-[10px] rounded bg-secondary/40 px-1.5 py-0.5 text-muted-foreground">
+                TID: {c.Radiation_TID}
+              </span>
+            )}
+            {c.Operating_Temperature_Range && (
+              <span className="text-[10px] rounded bg-secondary/40 px-1.5 py-0.5 text-muted-foreground">
+                {c.Operating_Temperature_Range}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Variant list */}
+        {variants.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-amber-500/10">
+            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest mb-1">Variants</p>
+            <div className="flex flex-wrap gap-1.5">
+              {variants.map(v => (
+                <span key={v.Part_Number} className="text-[10px] font-mono text-muted-foreground bg-secondary/30 rounded px-1.5 py-0.5">
+                  {v.Part_Number}
+                  {v.Package_Type && <span className="text-muted-foreground/60"> · {v.Package_Type}</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Warnings */}
+        {warnings.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-amber-500/10">
+            {warnings.map((w, i) => (
+              <p key={i} className="text-[10px] text-amber-400/80 flex items-start gap-1.5">
+                <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> {w}
+              </p>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Part Card (library grid)
+// ─────────────────────────────────────────────────────────────────────────────
 
 function PartCard({ part, onProgramChange }) {
   const navigate = useNavigate()
@@ -453,6 +642,12 @@ function PartCard({ part, onProgramChange }) {
             <span className="text-[10px] text-amber-400 font-medium uppercase tracking-wider">Needs Datasheet</span>
           </div>
         )}
+        {part.datasheet_file && (
+          <div className="flex items-center gap-1.5 pt-1.5">
+            <FileText className="h-3 w-3 text-emerald-400 shrink-0" />
+            <span className="text-[10px] text-emerald-400 font-medium">PDF on file</span>
+          </div>
+        )}
       </CardHeader>
 
       {specs.length > 0 && (
@@ -460,9 +655,7 @@ function PartCard({ part, onProgramChange }) {
           <div className="grid grid-cols-3 gap-2 text-center">
             {specs.slice(0, 6).map(({ label, value }) => (
               <div key={label} className="rounded-md bg-secondary/30 px-2 py-1.5">
-                <p className="text-xs text-muted-foreground uppercase tracking-widest leading-none mb-1">
-                  {label}
-                </p>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest leading-none mb-1">{label}</p>
                 <p className="text-xs font-semibold text-foreground font-mono truncate">{value}</p>
               </div>
             ))}
@@ -492,15 +685,10 @@ function PartCard({ part, onProgramChange }) {
             <button
               className="text-xs text-muted-foreground hover:text-foreground"
               onClick={() => { setEditing(false); setDraft(part.Program ?? '') }}
-            >
-              ✕
-            </button>
+            >✕</button>
           </div>
         ) : (
-          <button
-            className="w-full text-left group"
-            onClick={() => setEditing(true)}
-          >
+          <button className="w-full text-left group" onClick={() => setEditing(true)}>
             <p className="text-xs text-muted-foreground/60 uppercase tracking-widest leading-none mb-0.5">Program</p>
             <p className="text-xs text-foreground group-hover:text-primary transition-colors">
               {part.Program || <span className="text-muted-foreground/40 italic">Click to assign…</span>}
@@ -517,43 +705,5 @@ function PartCard({ part, onProgramChange }) {
         </div>
       )}
     </Card>
-  )
-}
-
-function PushResultPanel({ results }) {
-  return (
-    <div className="space-y-3">
-      {results.map((r, i) => {
-        const isSuccess = r.status === 'success'
-        return (
-          <div
-            key={i}
-            className={[
-              'rounded-md border px-4 py-3 flex items-start gap-3',
-              isSuccess
-                ? 'border-emerald-500/20 bg-emerald-500/5'
-                : 'border-amber-500/20 bg-amber-500/5',
-            ].join(' ')}
-          >
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-sm font-semibold text-foreground">{r.Part_Number}</span>
-                <span
-                  className={[
-                    'text-xs font-mono px-1.5 py-0.5 rounded border',
-                    isSuccess
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-                  ].join(' ')}
-                >
-                  {r.status}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">{r.message}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
   )
 }

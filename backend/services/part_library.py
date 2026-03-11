@@ -133,7 +133,11 @@ def consolidate_variants(parts: List[Dict[str, Any]], source_file: str = "") -> 
     return entry
 
 
-def upsert_parts(new_parts: List[Dict[str, Any]], source_file: str) -> int:
+def upsert_parts(
+    new_parts: List[Dict[str, Any]],
+    source_file: str,
+    datasheet_file: Optional[str] = None,
+) -> int:
     """Consolidate and save parts from a newly processed datasheet.
 
     Multiple part number variants from the same datasheet are merged into
@@ -152,6 +156,8 @@ def upsert_parts(new_parts: List[Dict[str, Any]], source_file: str) -> int:
     consolidated["source_file"] = source_file
     consolidated["added_at"] = timestamp
     consolidated["needs_datasheet"] = False
+    if datasheet_file:
+        consolidated["datasheet_file"] = datasheet_file
 
     pn = consolidated["Part_Number"]
 

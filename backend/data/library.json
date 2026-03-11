@@ -34,5 +34,43 @@
         "Summary": "QML Class V plastic package"
       }
     ]
+  },
+  {
+    "Part_Number": "TPS7H1121-SP",
+    "Manufacturer": "Texas Instruments",
+    "Value": null,
+    "Tolerance": null,
+    "Voltage_Rating": "2.25 V to 14 V",
+    "Package_Type": null,
+    "Pin_Count": "22",
+    "Operating_Temperature_Range": "-55°C to 125°C",
+    "Thermal_Resistance": null,
+    "Radiation_TID": "100 krad(Si)",
+    "Radiation_SEL_Threshold": "75 MeV·cm²/mg",
+    "Radiation_SEU_Rate": null,
+    "Summary": "Radiation-hardened, low dropout linear regulator (LDO) for powering devices in a space environment.",
+    "variants": [
+      {
+        "Part_Number": "TPS7H1121-SEP"
+      },
+      {
+        "Part_Number": "TPS7H1121MPWPTSEP"
+      },
+      {
+        "Part_Number": "TPS7H1121HFT/EM"
+      },
+      {
+        "Part_Number": "5962R2320301VXC",
+        "Package_Type": "22-Pin Ceramic"
+      },
+      {
+        "Part_Number": "5962R2320302PYE",
+        "Package_Type": "24-Pin Plastic",
+        "Pin_Count": "24"
+      }
+    ],
+    "source_file": "tps7h1121-sep.pdf",
+    "added_at": "2026-03-11T22:23:48.432807+00:00",
+    "needs_datasheet": false
   }
 ]

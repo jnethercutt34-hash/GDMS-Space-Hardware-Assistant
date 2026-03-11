@@ -37,6 +37,7 @@ frontend/.vite/
 # ── Data files (generated at runtime) ───────────────────────────────────────
 backend/data/library.json
 backend/data/diagrams.json
+backend/data/datasheets/
 
 # ── Logs & temp output ───────────────────────────────────────────────────────
 *.log

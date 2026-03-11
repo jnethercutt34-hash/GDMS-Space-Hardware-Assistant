@@ -374,20 +374,38 @@ export default function PartDetail() {
             </CardContent>
           </Card>
 
-          {/* Upload datasheet (always visible) */}
-          {hasDsData && (
+          {/* Datasheet PDF */}
+          {part.datasheet_file && (
             <Card>
               <CardContent className="py-4">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
-                  <Upload className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                    {uploading ? 'Processing…' : 'Re-upload datasheet to update fields'}
+                <a
+                  href={`/api/datasheets/${encodeURIComponent(part.datasheet_file)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 group"
+                >
+                  <FileText className="h-4 w-4 text-primary group-hover:text-primary/80 transition-colors" />
+                  <span className="text-xs text-foreground group-hover:text-primary transition-colors font-medium">
+                    View Datasheet PDF
                   </span>
-                </label>
+                </a>
+                <p className="text-[10px] text-muted-foreground/60 mt-1 ml-6 truncate">{part.datasheet_file}</p>
               </CardContent>
             </Card>
           )}
+
+          {/* Upload / re-upload datasheet */}
+          <Card>
+            <CardContent className="py-4">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
+                <Upload className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                  {uploading ? 'Processing…' : part.datasheet_file ? 'Re-upload datasheet' : 'Upload datasheet PDF'}
+                </span>
+              </label>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right columns — engineering data */}

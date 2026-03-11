@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Boxes, Plus, Cpu, Trash2, Download, Save, Sparkles, Link2, X } from 'lucide-react'
+import { Boxes, Plus, Cpu, Trash2, Download, Save, Sparkles, Link2, X, Library, Search, Loader2 } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -396,6 +396,118 @@ function AddPortForm({ onAdd }) {
 }
 
 // ---------------------------------------------------------------------------
+// Library picker — search and add parts from the component library
+// ---------------------------------------------------------------------------
+
+function LibraryPicker({ onAddPart, disabled }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const doSearch = useCallback(async (q) => {
+    if (!q.trim()) { setResults([]); return }
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/library/search?q=${encodeURIComponent(q.trim())}`)
+      if (res.ok) {
+        const data = await res.json()
+        setResults(data.parts ?? [])
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(() => doSearch(query), 250)
+    return () => clearTimeout(timer)
+  }, [query, doSearch, open])
+
+  // Load all parts when opening
+  useEffect(() => {
+    if (open && !query.trim()) {
+      doSearch('')
+      // Fetch all
+      fetch('/api/library').then(r => r.ok ? r.json() : { parts: [] }).then(d => setResults(d.parts ?? []))
+    }
+  }, [open])
+
+  if (!open) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+      >
+        <Search className="mr-1 h-3 w-3" /> Browse Library
+      </Button>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        <input
+          className="w-full pl-7 pr-7 py-1.5 rounded-md border border-border bg-secondary text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          placeholder="Search parts…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          autoFocus
+        />
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          onClick={() => { setOpen(false); setQuery(''); setResults([]) }}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+
+      <div className="max-h-48 overflow-y-auto space-y-1 rounded-md border border-border bg-secondary/30 p-1">
+        {loading && (
+          <p className="text-[10px] text-muted-foreground text-center py-2 animate-pulse">Searching…</p>
+        )}
+        {!loading && results.length === 0 && (
+          <p className="text-[10px] text-muted-foreground text-center py-2">
+            {query.trim() ? 'No parts found' : 'Library is empty'}
+          </p>
+        )}
+        {results.map(part => (
+          <button
+            key={part.Part_Number}
+            className="w-full text-left rounded px-2 py-1.5 hover:bg-primary/10 transition-colors group"
+            onClick={() => {
+              onAddPart(part)
+              // Don't close — let them add more
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold text-foreground group-hover:text-primary truncate">
+                {part.Part_Number}
+              </span>
+              <Plus className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary shrink-0" />
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-muted-foreground truncate">{part.Manufacturer}</span>
+              {part.Package_Type && (
+                <span className="text-[10px] text-muted-foreground/60">{part.Package_Type}</span>
+              )}
+            </div>
+            {part.Summary && (
+              <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5">{part.Summary}</p>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Signal name modal
 // ---------------------------------------------------------------------------
 
@@ -453,6 +565,7 @@ export default function BlockDiagram() {
   const [error, setError]             = useState(null)
   const [newName, setNewName]         = useState('')
   const [genPartNums, setGenPartNums] = useState('')
+  const [genDescription, setGenDescription] = useState('')
   const [selectedBlockId, setSelectedBlockId] = useState(null)
 
   // Drag state
@@ -545,6 +658,64 @@ export default function BlockDiagram() {
       setCurrent(data)
       loadDiagrams()
     } catch (e) { setError(e.message) } finally { setIsLoading(false) }
+  }
+
+  const handleGenerateFromText = async () => {
+    if (!genDescription.trim()) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/diagrams/generate-from-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: genDescription.trim(), diagram_name: 'AI Generated' }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Generation failed')
+      }
+      const data = await res.json()
+      setCurrent(data)
+      loadDiagrams()
+      setGenDescription('')
+    } catch (e) { setError(e.message) } finally { setIsLoading(false) }
+  }
+
+  // Add a library part as a block on the canvas
+  const handleAddLibraryPart = (part) => {
+    if (!current) return
+    const id = `blk_${Date.now()}`
+    const count = current?.blocks?.length || 0
+    const col = count % 4
+    const row = Math.floor(count / 4)
+    const x = 16 + col * (BLOCK_W + 24)
+    const y = 16 + row * (BLOCK_H_BASE + 24)
+
+    // Guess category from part data
+    let category = 'Custom'
+    const summary = (part.Summary || '').toLowerCase()
+    const pn = (part.Part_Number || '').toLowerCase()
+    if (/fpga|cpld|zynq|kintex|artix|virtex/i.test(pn + ' ' + summary)) category = 'FPGA'
+    else if (/memory|sram|dram|ddr|flash|eeprom|mram/i.test(pn + ' ' + summary)) category = 'Memory'
+    else if (/regulator|ldo|dc.dc|converter|pmic|power/i.test(summary)) category = 'Power'
+    else if (/connector|sfp|sma|usb|jtag|uart/i.test(pn + ' ' + summary)) category = 'Connector'
+    else if (/processor|mcu|microcontroller|arm|risc/i.test(pn + ' ' + summary)) category = 'Processor'
+    else if (/optic|transceiver|laser|photodiode|fiber/i.test(pn + ' ' + summary)) category = 'Optics'
+
+    setCurrent(prev => ({
+      ...prev,
+      blocks: [
+        ...(prev.blocks || []),
+        {
+          id,
+          label: part.Part_Number,
+          category,
+          part_number: part.Part_Number,
+          x, y,
+          ports: [],
+        },
+      ],
+    }))
   }
 
   const handleExport = async (format) => {
@@ -836,6 +1007,18 @@ export default function BlockDiagram() {
             </CardContent>
           </Card>
 
+          {/* Add from Library */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Library className="h-4 w-4 text-primary" /> Add from Library
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LibraryPicker onAddPart={handleAddLibraryPart} disabled={!current} />
+            </CardContent>
+          </Card>
+
           {/* AI Generate */}
           <Card>
             <CardHeader className="pb-3">
@@ -843,16 +1026,39 @@ export default function BlockDiagram() {
                 <Sparkles className="h-4 w-4 text-primary" /> AI Generate
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <input
-                className="w-full rounded-md border border-border bg-secondary px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground"
-                placeholder="Part numbers (comma-separated)…"
-                value={genPartNums}
-                onChange={e => setGenPartNums(e.target.value)}
-              />
-              <Button size="sm" onClick={handleGenerate} disabled={isLoading} className="w-full">
-                <Sparkles className="mr-1 h-3 w-3" /> Generate
-              </Button>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest mb-1">From description</p>
+                <textarea
+                  className="w-full rounded-md border border-border bg-secondary px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground resize-none"
+                  rows={3}
+                  placeholder="Describe your system (e.g. 'FPGA board with DDR4 memory, 3.3V and 1.8V power rails, SFP+ optical transceiver, and JTAG debug connector')…"
+                  value={genDescription}
+                  onChange={e => setGenDescription(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleGenerateFromText}
+                  disabled={isLoading || !genDescription.trim()}
+                  className="w-full mt-1"
+                >
+                  {isLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                  Generate from Text
+                </Button>
+              </div>
+              <div className="border-t border-border pt-3">
+                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest mb-1">From part numbers</p>
+                <input
+                  className="w-full rounded-md border border-border bg-secondary px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground"
+                  placeholder="Part numbers (comma-separated)…"
+                  value={genPartNums}
+                  onChange={e => setGenPartNums(e.target.value)}
+                />
+                <Button size="sm" onClick={handleGenerate} disabled={isLoading || !genPartNums.trim()} className="w-full mt-1">
+                  {isLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                  Generate from Parts
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

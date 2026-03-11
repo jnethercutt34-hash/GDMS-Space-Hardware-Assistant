@@ -26,6 +26,11 @@ class GenerateFromPartsRequest(BaseModel):
     diagram_name: str = "Auto-generated Diagram"
 
 
+class GenerateFromTextRequest(BaseModel):
+    description: str
+    diagram_name: str = "Auto-generated Diagram"
+
+
 class GenerateFromPdfRequest(BaseModel):
     diagram_name: str = "Auto-generated Diagram"
 
@@ -112,6 +117,25 @@ async def generate_diagram(payload: GenerateFromPartsRequest):
         raise HTTPException(status_code=502, detail=f"AI generation failed: {exc}")
 
     # Auto-save the generated diagram
+    data = diagram.model_dump()
+    create(data)
+    return data
+
+
+@router.post("/diagrams/generate-from-text")
+async def generate_diagram_from_text(payload: GenerateFromTextRequest):
+    """Generate a block diagram from a free-text system description."""
+    if not payload.description.strip():
+        raise HTTPException(status_code=400, detail="Description text is required.")
+
+    try:
+        diagram = generate_from_text(payload.description, payload.diagram_name)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        logger.exception("AI block diagram generation from text failed")
+        raise HTTPException(status_code=502, detail=f"AI generation failed: {exc}")
+
     data = diagram.model_dump()
     create(data)
     return data

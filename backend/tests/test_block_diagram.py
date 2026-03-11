@@ -186,7 +186,7 @@ class TestBlockDiagramGenerator:
         ai_response = {"diagram": diagram_data}
         mock_client = _make_openai_mock(ai_response)
 
-        with patch("services.block_diagram_generator._get_client", return_value=mock_client):
+        with patch("services.block_diagram_generator.get_client", return_value=mock_client):
             from services.block_diagram_generator import generate_from_parts
             result = generate_from_parts([{"Part_Number": "XCVU9P"}])
 
@@ -198,7 +198,7 @@ class TestBlockDiagramGenerator:
         ai_response = {"diagram": diagram_data}
         mock_client = _make_openai_mock(ai_response)
 
-        with patch("services.block_diagram_generator._get_client", return_value=mock_client):
+        with patch("services.block_diagram_generator.get_client", return_value=mock_client):
             from services.block_diagram_generator import generate_from_text
             result = generate_from_text("FPGA connected to DDR4 memory")
 
@@ -214,13 +214,13 @@ class TestBlockDiagramGenerator:
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_response
 
-        with patch("services.block_diagram_generator._get_client", return_value=mock_client):
+        with patch("services.block_diagram_generator.get_client", return_value=mock_client):
             from services.block_diagram_generator import generate_from_parts
             with pytest.raises(ValueError, match="non-JSON"):
                 generate_from_parts([])
 
     def test_generate_no_api_key(self):
-        with patch("services.block_diagram_generator._get_client", side_effect=RuntimeError("INTERNAL_API_KEY is not set")):
+        with patch("services.block_diagram_generator.get_client", side_effect=RuntimeError("INTERNAL_API_KEY is not set")):
             from services.block_diagram_generator import generate_from_parts
             with pytest.raises(RuntimeError, match="INTERNAL_API_KEY"):
                 generate_from_parts([])

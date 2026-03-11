@@ -141,7 +141,9 @@ def parse_bom_csv(content: str) -> List[BOMLineItem]:
     Auto-detects column mapping from header row.
     Raises ValueError if no recognisable columns found.
     """
-    reader = csv.reader(io.StringIO(content))
+    # Normalise line endings — uploaded CSVs may have \r\n, \r, or mixed.
+    # io.StringIO with newline='' lets csv.reader handle all variants correctly.
+    reader = csv.reader(io.StringIO(content, newline=""))
     rows = list(reader)
 
     if not rows:

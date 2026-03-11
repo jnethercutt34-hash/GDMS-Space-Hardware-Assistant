@@ -12,6 +12,8 @@ class ComponentData(BaseModel):
     represented as None and rendered as '—' in the UI.
     """
 
+    model_config = {"extra": "ignore", "coerce_numbers_to_str": True}
+
     Part_Number: str = Field(
         description="Manufacturer part number exactly as printed on the datasheet."
     )

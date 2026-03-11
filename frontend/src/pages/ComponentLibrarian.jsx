@@ -68,8 +68,10 @@ export default function ComponentLibrarian() {
     try {
       const res = await fetch('/api/upload-datasheet', { method: 'POST', body: formData })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || 'Upload failed')
+        const text = await res.text()
+        let detail = 'Upload failed'
+        try { detail = JSON.parse(text).detail || detail } catch { detail = text || detail }
+        throw new Error(detail)
       }
       const data = await res.json()
       setExtractedData(data)
@@ -95,8 +97,10 @@ export default function ComponentLibrarian() {
         body: JSON.stringify({ rows: extractedData.rows }),
       })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || 'Push failed')
+        const text = await res.text()
+        let detail = 'Push failed'
+        try { detail = JSON.parse(text).detail || detail } catch { detail = text || detail }
+        throw new Error(detail)
       }
       setPushResult(await res.json())
     } catch (e) {
@@ -125,8 +129,10 @@ export default function ComponentLibrarian() {
     try {
       const res = await fetch('/api/library/import-bom', { method: 'POST', body: formData })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || 'BOM import failed')
+        const text = await res.text()
+        let detail = 'BOM import failed'
+        try { detail = JSON.parse(text).detail || detail } catch { detail = text || detail }
+        throw new Error(detail)
       }
       const data = await res.json()
       setBomResult(data)

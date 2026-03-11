@@ -9,10 +9,15 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("server.log", encoding="utf-8"),
+    ],
 )
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from routers import librarian, fpga, constraint, block_diagram, com, bom, drc, sipi, stackup
 
@@ -39,6 +44,15 @@ app.include_router(bom.router, prefix="/api", tags=["bom"])
 app.include_router(drc.router, prefix="/api", tags=["drc"])
 app.include_router(sipi.router, prefix="/api", tags=["sipi"])
 app.include_router(stackup.router, prefix="/api", tags=["stackup"])
+
+
+logger = logging.getLogger(__name__)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
 @app.get("/health")

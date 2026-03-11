@@ -128,7 +128,7 @@ async def import_bom_to_library(file: UploadFile = File(...)):
     Passives (R, C, L, ferrites, test points, fiducials) are skipped.
     Parts that already exist in the library are not overwritten.
     """
-    content = (await file.read()).decode("utf-8", errors="replace")
+    content = (await file.read()).decode("utf-8-sig", errors="replace")
 
     try:
         bom_items = parse_bom_csv(content)

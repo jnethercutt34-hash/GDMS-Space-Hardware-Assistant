@@ -1,0 +1,44 @@
+RefDes,Part_Number,Manufacturer,Quantity,Value,Description
+U1,RTG4,Microchip,1,,Radiation-Hardened FPGA 150k LE
+U2,XQ7K160T,Xilinx,1,,Kintex-7 FPGA Radiation-Hardened
+U3,STM32H743,STMicroelectronics,1,,Rad-Hard MCU ARM Cortex-M7
+U4,ISL70001,Renesas,1,,Rad-Hard Buck Converter
+U5,STA5731-AA,STMicroelectronics,1,,Single Channel LDO Rad-Hard
+U6,LT3085,Linear Tech,1,,Low Dropout Regulator Rad-Hard
+U7,LT3972,Linear Tech,1,,Rad-Hard DC-DC Converter 600mA
+U8,TPS3839,TI,1,,Supply Voltage Supervisor
+U9,ISL71091,Renesas,1,,Precision Voltage Reference Rad-Hard
+U10,AD9245,Analog Devices,1,,14-bit ADC 125 MSPS
+U11,OPA627,TI,1,,High Speed Precision Op-Amp
+U12,OPA2330,TI,1,,Rad-Hard Operational Amplifier Precision
+U13,AD8065,Analog Devices,1,,High Speed Op-Amp Radiation
+U14,ADG1207,Analog Devices,1,,CMOS Analog Switch Rad-Hard
+U15,NCP373,onsemi,1,,Rad-Hard Load Switch 5A
+U16,MC33498,onsemi,1,,H-Bridge Motor Driver
+U17,HD3-1711,STMicroelectronics,2,,SRAM 16k Rad-Hard
+U18,M58LW016,STMicroelectronics,1,,Flash Memory Rad-Hard
+U19,FDR4-2GB,Frontgrade,2,,DDR4 SDRAM 2GB Radiation-Hardened
+U20,FMRAM-512MB,Frontgrade,1,,MRAM 512MB Rad-Hard Non-Volatile
+U21,DS1343,Maxim,1,,SPI RTC Rad-Hard
+U22,RT1149PH,Cobham,2,,Hex Buffer Rad-Hard
+U23,H7140,STMicroelectronics,1,,Precision Comparator Space
+Q1,2N2222A,onsemi,4,NPN,NPN Transistor General Purpose
+D1,FM4148,Frontgrade,6,,Switching Diode Radiation-Hardened
+R1,CRCW0402,Vishay,48,10k,Thick Film Resistor 10k 1/16W 1%
+R2,CRCW0402,Vishay,24,4.7k,Thick Film Resistor 4.7k 1/16W 1%
+R3,CRCW0402,Vishay,16,100,Thick Film Resistor 100 ohm 1/16W 1%
+R4,CRCW0603,Vishay,8,49.9,Thin Film Resistor 49.9 ohm 1/10W 0.1%
+C1,C0402C104K,KEMET,64,100nF,MLCC Capacitor 100nF 16V X7R
+C2,C0402C100J,KEMET,32,10pF,MLCC Capacitor 10pF 50V C0G
+C3,C0805C106K,KEMET,16,10uF,MLCC Capacitor 10uF 16V X5R
+C4,T491B106K,KEMET,8,10uF,Tantalum Capacitor 10uF 16V
+L1,LQH32MN,Murata,4,10uH,Power Inductor 10uH 1.2A
+L2,BLM18AG,Murata,12,,Ferrite Bead 600 ohm 100MHz
+J1,NANO-D-37,Glenair,1,,Micro-D Connector 37-pin Space-Rated
+J2,SpaceABLE 28G,Smiths Interconnect,1,,4x28Gbps High-Speed Connector
+J3,JTAG-10,Samtec,1,,JTAG Debug Header 10-pin
+TP1,5001,Keystone,12,,PCB Test Point
+FID1,FID-1MM,Generic,4,,Fiducial Marker 1mm
+Y1,SG7050CAN,Epson,1,100MHz,TCXO 100MHz Space-Grade
+Y2,SG3225EAN,Epson,1,25MHz,Crystal Oscillator 25MHz
+F1,MHP-TA,Bel Fuse,2,,PolySwitch Resettable Fuse 500mA

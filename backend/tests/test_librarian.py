@@ -45,7 +45,7 @@ def _post_pdf(rows=None):
     mock_result = ComponentExtractionResult(components=rows)
     with (
         patch("routers.librarian.extract_text_from_pdf", return_value=_MOCK_PDF_EXTRACTION),
-        patch("routers.librarian.extract_components_from_text", return_value=rows),
+        patch("routers.librarian.extract_components_from_text", return_value=(rows, [])),
         patch("services.part_library.upsert_parts", return_value=None),
     ):
         return client.post(
@@ -87,7 +87,8 @@ def test_rows_contain_all_nine_columns():
     expected_keys = {
         "Part_Number", "Manufacturer", "Value", "Tolerance",
         "Voltage_Rating", "Package_Type", "Pin_Count", "Thermal_Resistance",
-        "Summary",
+        "Operating_Temperature_Range", "Radiation_TID",
+        "Radiation_SEL_Threshold", "Radiation_SEU_Rate", "Summary",
     }
     data = _post_pdf().json()
     assert len(data["rows"]) == 1
@@ -187,15 +188,18 @@ def test_ai_extractor_returns_validated_component_list():
     }
     mock_client = _make_openai_mock(payload)
 
-    with patch("services.ai_extractor._get_client", return_value=mock_client):
+    with (
+        patch("services.ai_extractor.get_client", return_value=mock_client),
+        patch("services.ai_extractor.get_model", return_value="test-model"),
+    ):
         from services.ai_extractor import extract_components_from_text
-        result = extract_components_from_text("LM317 voltage regulator datasheet text")
+        rows, warnings = extract_components_from_text("LM317 voltage regulator datasheet text")
 
-    assert len(result) == 1
-    assert isinstance(result[0], ComponentData)
-    assert result[0].Part_Number == "LM317"
-    assert result[0].Voltage_Rating == "40 V"
-    assert result[0].Pin_Count == "3"
+    assert len(rows) == 1
+    assert isinstance(rows[0], ComponentData)
+    assert rows[0].Part_Number == "LM317"
+    assert rows[0].Voltage_Rating == "40 V"
+    assert rows[0].Pin_Count == "3"
 
 
 def test_ai_extractor_skips_rows_missing_required_fields():
@@ -208,23 +212,29 @@ def test_ai_extractor_skips_rows_missing_required_fields():
     }
     mock_client = _make_openai_mock(payload)
 
-    with patch("services.ai_extractor._get_client", return_value=mock_client):
+    with (
+        patch("services.ai_extractor.get_client", return_value=mock_client),
+        patch("services.ai_extractor.get_model", return_value="test-model"),
+    ):
         from services.ai_extractor import extract_components_from_text
-        result = extract_components_from_text("some text")
+        rows, warnings = extract_components_from_text("some text")
 
-    assert len(result) == 1
-    assert result[0].Part_Number == "GOOD-PART"
+    assert len(rows) == 1
+    assert rows[0].Part_Number == "GOOD-PART"
 
 
 def test_ai_extractor_handles_empty_components_list():
     payload = {"components": []}
     mock_client = _make_openai_mock(payload)
 
-    with patch("services.ai_extractor._get_client", return_value=mock_client):
+    with (
+        patch("services.ai_extractor.get_client", return_value=mock_client),
+        patch("services.ai_extractor.get_model", return_value="test-model"),
+    ):
         from services.ai_extractor import extract_components_from_text
-        result = extract_components_from_text("blank page")
+        rows, warnings = extract_components_from_text("blank page")
 
-    assert result == []
+    assert rows == []
 
 
 def test_ai_extractor_raises_runtime_error_when_key_missing():
@@ -245,14 +255,14 @@ def test_ai_extractor_raises_runtime_error_when_key_missing():
 
 def test_extract_text_service_returns_correct_structure():
     mock_page = MagicMock()
-    mock_page.extract_text.return_value = "GDMS Component Data"
+    mock_page.get_text.return_value = "GDMS Component Data"
 
-    mock_pdf_cm = MagicMock()
-    mock_pdf_cm.__enter__ = MagicMock(return_value=mock_pdf_cm)
-    mock_pdf_cm.__exit__ = MagicMock(return_value=False)
-    mock_pdf_cm.pages = [mock_page, mock_page]
+    mock_doc = MagicMock()
+    mock_doc.page_count = 2
+    mock_doc.__getitem__ = lambda self, i: mock_page
+    mock_doc.close = MagicMock()
 
-    with patch("services.pdf_extractor.pdfplumber.open", return_value=mock_pdf_cm):
+    with patch("services.pdf_extractor.fitz.open", return_value=mock_doc):
         from services.pdf_extractor import extract_text_from_pdf
         result = extract_text_from_pdf(b"fake pdf bytes")
 
@@ -263,14 +273,14 @@ def test_extract_text_service_returns_correct_structure():
 
 def test_extract_text_service_handles_empty_pages():
     mock_page = MagicMock()
-    mock_page.extract_text.return_value = None
+    mock_page.get_text.return_value = None
 
-    mock_pdf_cm = MagicMock()
-    mock_pdf_cm.__enter__ = MagicMock(return_value=mock_pdf_cm)
-    mock_pdf_cm.__exit__ = MagicMock(return_value=False)
-    mock_pdf_cm.pages = [mock_page]
+    mock_doc = MagicMock()
+    mock_doc.page_count = 1
+    mock_doc.__getitem__ = lambda self, i: mock_page
+    mock_doc.close = MagicMock()
 
-    with patch("services.pdf_extractor.pdfplumber.open", return_value=mock_pdf_cm):
+    with patch("services.pdf_extractor.fitz.open", return_value=mock_doc):
         from services.pdf_extractor import extract_text_from_pdf
         result = extract_text_from_pdf(b"fake pdf bytes")
 

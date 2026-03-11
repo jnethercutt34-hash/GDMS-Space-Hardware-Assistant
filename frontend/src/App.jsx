@@ -6,7 +6,6 @@ import FpgaBridge from './pages/FpgaBridge'
 import SiPiGuide from './pages/SiPiGuide'
 import BlockDiagram from './pages/BlockDiagram'
 import StackupDesigner from './pages/StackupDesigner'
-import ComAnalysis from './pages/ComAnalysis'
 import BomAnalyzer from './pages/BomAnalyzer'
 import SchematicDrc from './pages/SchematicDrc'
 import PartDetail from './pages/PartDetail'
@@ -25,9 +24,10 @@ export default function App() {
             <Route path="/stackup"        element={<StackupDesigner />} />
             <Route path="/constraints"    element={<SiPiGuide />} />
             <Route path="/fpga"           element={<FpgaBridge />} />
-            <Route path="/com"            element={<ComAnalysis />} />
             <Route path="/bom"            element={<BomAnalyzer />} />
             <Route path="/drc"            element={<SchematicDrc />} />
+            {/* Legacy /com route → redirect to SI/PI Guide */}
+            <Route path="/com"            element={<Navigate to="/constraints" replace />} />
             {/* Catch-all → home */}
             <Route path="*"              element={<Navigate to="/" replace />} />
           </Routes>

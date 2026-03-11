@@ -2,16 +2,15 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Satellite, Menu, X } from 'lucide-react'
 
-// Ordered by design flow: define → architect → stackup → constrain → bridge → simulate → audit → verify
+// Ordered by design flow: define → architect → stackup → constrain+COM → bridge → audit → verify
 const NAV_ITEMS = [
   { to: '/librarian',      label: 'Librarian',       step: '1' },
   { to: '/block-diagram',  label: 'Block Diagram',   step: '2' },
   { to: '/stackup',        label: 'Stackup',         step: '3' },
   { to: '/constraints',    label: 'SI/PI Guide',     step: '4' },
   { to: '/fpga',           label: 'FPGA Bridge',     step: '5' },
-  { to: '/com',            label: 'COM Analysis',    step: '6' },
-  { to: '/bom',            label: 'BOM Analyzer',    step: '7' },
-  { to: '/drc',            label: 'Schematic DRC',   step: '8' },
+  { to: '/bom',            label: 'BOM Analyzer',    step: '6' },
+  { to: '/drc',            label: 'Schematic DRC',   step: '7' },
 ]
 
 export default function Navbar() {
@@ -35,7 +34,7 @@ export default function Navbar() {
             </div>
           </NavLink>
 
-          {/* Desktop nav — hidden below 1200px */}
+          {/* Desktop nav */}
           <div className="hidden xl:flex items-center gap-0.5">
             {NAV_ITEMS.map((item) => (
               <NavLink
@@ -56,7 +55,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Hamburger button — shown below 1200px */}
+          {/* Hamburger */}
           <button
             className="xl:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -67,7 +66,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown menu */}
+      {/* Mobile dropdown */}
       {menuOpen && (
         <div className="xl:hidden border-t border-border bg-card/95 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 grid grid-cols-2 gap-1">

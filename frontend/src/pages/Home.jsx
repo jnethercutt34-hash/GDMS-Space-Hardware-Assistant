@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  Satellite, Upload, Cpu, GitCompare, Ruler, Boxes, Radio, Layers,
+  Satellite, Upload, Cpu, GitCompare, Ruler, Boxes, Layers,
   ClipboardList, ShieldCheck, ArrowRight, Zap, ChevronRight,
 } from 'lucide-react'
 import { Card, CardContent } from '../components/ui/card'
@@ -62,12 +62,12 @@ const MODULES = [
     title: 'SI/PI Design Guide',
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
     summary:
-      'Set proactive, spec-driven SI/PI design rules before HyperLynx simulation. Select your board interfaces, get industry-sourced constraints (impedance, length matching, crosstalk spacing, via budgets), estimate COM-informed channel loss budgets, and ask the AI advisor for tailored guidance.',
+      'Your one-stop SI/PI workflow: select interfaces, get spec-driven design rules, estimate channel loss budgets, build detailed channel models with COM analysis (IEEE 802.3), and ask the AI advisor — all before committing to HyperLynx simulation.',
     bullets: [
       'Built-in knowledge base for 10+ interfaces (DDR4, PCIe, USB, SpaceWire, 1553…)',
-      'COM-informed channel loss budget calculator',
+      'Quick loss budget estimator + full COM channel model',
       'AI SI/PI advisor with context-aware recommendations',
-      'Export CES constraint scripts & Markdown design rules docs',
+      'Export CES scripts, Markdown docs, and HyperLynx CSV',
     ],
   },
   {
@@ -86,24 +86,9 @@ const MODULES = [
     ],
   },
   {
-    to: '/com',
-    icon: Radio,
-    step: '6',
-    title: 'COM Channel Analysis',
-    color: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
-    summary:
-      'Model high-speed serial channels segment by segment and estimate Channel Operating Margin per IEEE 802.3. Quickly check whether a link will close before committing to a full simulation.',
-    bullets: [
-      'Build channel models (trace, via, connector, package)',
-      'AI extracts channel parameters from specs',
-      'Simplified COM calculator (Annex 93A)',
-      'Export to HyperLynx CSV or CES script',
-    ],
-  },
-  {
     to: '/bom',
     icon: ClipboardList,
-    step: '7',
+    step: '6',
     title: 'BOM Analyzer',
     color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     summary:
@@ -118,7 +103,7 @@ const MODULES = [
   {
     to: '/drc',
     icon: ShieldCheck,
-    step: '8',
+    step: '7',
     title: 'Schematic DRC',
     color: 'text-red-400 bg-red-500/10 border-red-500/20',
     summary:
@@ -137,11 +122,10 @@ const FLOW_STEPS = [
   { step: '1', label: 'Define Parts' },
   { step: '2', label: 'Architect' },
   { step: '3', label: 'Stackup' },
-  { step: '4', label: 'Constrain' },
+  { step: '4', label: 'SI/PI + COM' },
   { step: '5', label: 'Bridge I/O' },
-  { step: '6', label: 'Simulate' },
-  { step: '7', label: 'Audit BOM' },
-  { step: '8', label: 'Verify DRC' },
+  { step: '6', label: 'Audit BOM' },
+  { step: '7', label: 'Verify DRC' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -215,13 +199,13 @@ export default function Home() {
         <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground leading-relaxed">
           A unified suite of tools for space and defense hardware engineers.
           Follow the design flow from component selection through stackup design,
-          SI/PI constraints, simulation prep, BOM auditing, and DRC verification —
+          SI/PI constraints and COM analysis, BOM auditing, and DRC verification —
           all with AI acceleration and Xpedition integration.
         </p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-6 text-xs text-muted-foreground/60">
           <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 8 Engineering Modules
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 7 Engineering Modules
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" /> AI-Assisted Extraction
@@ -288,10 +272,10 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <p className="font-semibold text-foreground mb-1">3. Constrain & bridge</p>
+            <p className="font-semibold text-foreground mb-1">3. Constrain & simulate</p>
             <p>
-              Set SI/PI rules in the <strong>SI/PI Design Guide</strong>, check your FPGA pin map
-              with the <strong>FPGA I/O Bridge</strong>, and model channels with <strong>COM Analysis</strong>.
+              Set SI/PI rules and run COM channel analysis in the <strong>SI/PI Design Guide</strong>.
+              Check your FPGA pin map with the <strong>FPGA I/O Bridge</strong>.
             </p>
           </div>
           <div>

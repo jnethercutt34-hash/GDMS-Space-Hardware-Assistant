@@ -206,7 +206,7 @@ export default function PartDetail() {
         <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
         <h2 className="text-lg font-semibold text-foreground mb-1">Part Not Found</h2>
         <p className="text-sm text-muted-foreground mb-6">{error || `"${partNumber}" is not in the library.`}</p>
-        <Button variant="outline" onClick={() => navigate('/')}>
+        <Button variant="outline" onClick={() => navigate('/librarian')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Library
         </Button>
       </div>
@@ -220,7 +220,7 @@ export default function PartDetail() {
     <div>
       {/* Back nav */}
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/librarian')}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Library

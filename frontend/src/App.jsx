@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import Home from './pages/Home'
 import ComponentLibrarian from './pages/ComponentLibrarian'
 import FpgaBridge from './pages/FpgaBridge'
 import ConstraintEditor from './pages/ConstraintEditor'
@@ -16,7 +17,8 @@ export default function App() {
         <Navbar />
         <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
           <Routes>
-            <Route path="/"               element={<ComponentLibrarian />} />
+            <Route path="/"               element={<Home />} />
+            <Route path="/librarian"      element={<ComponentLibrarian />} />
             <Route path="/part/:partNumber" element={<PartDetail />} />
             <Route path="/fpga"           element={<FpgaBridge />} />
             <Route path="/constraints"    element={<ConstraintEditor />} />

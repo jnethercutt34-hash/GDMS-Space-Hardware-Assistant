@@ -3,13 +3,13 @@ import { NavLink } from 'react-router-dom'
 import { Satellite, Menu, X } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { to: '/',              label: 'Librarian' },
-  { to: '/fpga',          label: 'FPGA Bridge' },
-  { to: '/constraints',   label: 'SI/PI Constr.' },
-  { to: '/block-diagram', label: 'Block Diagram' },
-  { to: '/com',           label: 'COM Analysis' },
-  { to: '/bom',           label: 'BOM Analyzer' },
-  { to: '/drc',           label: 'Schematic DRC' },
+  { to: '/librarian',      label: 'Librarian' },
+  { to: '/fpga',            label: 'FPGA Bridge' },
+  { to: '/constraints',     label: 'SI/PI Constr.' },
+  { to: '/block-diagram',   label: 'Block Diagram' },
+  { to: '/com',             label: 'COM Analysis' },
+  { to: '/bom',             label: 'BOM Analyzer' },
+  { to: '/drc',             label: 'Schematic DRC' },
 ]
 
 export default function Navbar() {
@@ -20,8 +20,8 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
 
-          {/* Logo */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Logo — links to home */}
+          <NavLink to="/" className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity">
             <Satellite className="h-6 w-6 text-primary shrink-0" />
             <div>
               <p className="font-heading font-bold text-sm text-foreground leading-tight">
@@ -31,7 +31,7 @@ export default function Navbar() {
                 Digital Hardware Engineering
               </p>
             </div>
-          </div>
+          </NavLink>
 
           {/* Desktop nav — hidden below 1200px */}
           <div className="hidden xl:flex items-center gap-0.5">
@@ -39,7 +39,6 @@ export default function Navbar() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/'}
                 className={({ isActive }) =>
                   [
                     'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
@@ -73,7 +72,6 @@ export default function Navbar() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/'}
                 onClick={() => setMenuOpen(false)}
                 className={({ isActive }) =>
                   [

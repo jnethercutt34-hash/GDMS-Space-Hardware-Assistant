@@ -1,3 +1,4 @@
+import re
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
@@ -8,6 +9,7 @@ from services.pdf_extractor import extract_text_from_pdf
 from services.ai_extractor import extract_components_from_text
 from services.xpedition_stub import simulate_xpedition_push
 from services import part_library
+from services.bom_analyzer import parse_bom_csv
 
 router = APIRouter()
 
@@ -78,6 +80,108 @@ def push_to_databook(payload: PushToDatabookRequest):
         })
 
     return {"results": results}
+
+
+# ---------------------------------------------------------------------------
+# POST /api/library/import-bom
+# ---------------------------------------------------------------------------
+
+# Reference designator prefixes that indicate ICs / active devices
+_IC_PREFIXES = re.compile(
+    r"^(U|IC|Q|D|CR|VR|Y|J|P|FL|FB|T|L)\d",
+    re.IGNORECASE,
+)
+
+# Keywords in description or part number that strongly suggest passives (skip)
+_PASSIVE_KEYWORDS = re.compile(
+    r"\b(resistor|capacitor|cap\b|res\b|inductor|ferrite|fuse|jumper|testpoint|test point|fiducial|standoff|screw|washer|nut|spacer|label|barcode)\b",
+    re.IGNORECASE,
+)
+
+# Reference designator prefixes for passives — these are skipped
+_PASSIVE_REFDES = re.compile(r"^(R|C|L|F|FB|TP|FID|MH)\d", re.IGNORECASE)
+
+
+def _is_ic_candidate(ref_des: str, part_number: str, description: str) -> bool:
+    """Heuristic: return True if the BOM line looks like an IC or active device."""
+    # Skip obviously passive ref-des
+    if _PASSIVE_REFDES.match(ref_des):
+        return False
+    # Skip passive-sounding descriptions
+    if description and _PASSIVE_KEYWORDS.search(description):
+        return False
+    # Accept known IC ref-des prefixes
+    if _IC_PREFIXES.match(ref_des):
+        return True
+    # Accept anything that doesn't look passive — connectors, oscillators, etc.
+    # The engineer can always delete unwanted entries from the library.
+    if ref_des and not _PASSIVE_REFDES.match(ref_des):
+        return True
+    return False
+
+
+@router.post("/library/import-bom")
+async def import_bom_to_library(file: UploadFile = File(...)):
+    """Parse an Xpedition (or generic) BOM CSV and add IC / active-device
+    entries to the part library as placeholders awaiting datasheet upload.
+
+    Passives (R, C, L, ferrites, test points, fiducials) are skipped.
+    Parts that already exist in the library are not overwritten.
+    """
+    content = (await file.read()).decode("utf-8", errors="replace")
+
+    try:
+        bom_items = parse_bom_csv(content)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if not bom_items:
+        raise HTTPException(status_code=400, detail="No parts found in BOM.")
+
+    # Deduplicate by part number — keep first occurrence
+    seen = set()
+    placeholder_parts = []
+    skipped_passives = 0
+    for item in bom_items:
+        pn = item.part_number.strip()
+        if not pn or pn == "UNKNOWN":
+            continue
+        if pn in seen:
+            continue
+
+        if not _is_ic_candidate(item.ref_des, pn, item.description):
+            skipped_passives += 1
+            continue
+
+        seen.add(pn)
+        placeholder_parts.append({
+            "Part_Number": pn,
+            "Manufacturer": item.manufacturer if item.manufacturer != "Unknown" else None,
+            "Package_Type": item.package,
+            "Value": item.value,
+            "Summary": item.description or None,
+        })
+
+    if not placeholder_parts:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No IC / active-device parts found. {skipped_passives} passive components were skipped.",
+        )
+
+    result = part_library.upsert_placeholder_parts(
+        placeholder_parts,
+        source_file=file.filename or "bom_import.csv",
+    )
+
+    return {
+        "filename": file.filename,
+        "total_bom_lines": len(bom_items),
+        "ic_candidates": len(placeholder_parts),
+        "passives_skipped": skipped_passives,
+        "added_to_library": result["added"],
+        "already_in_library": result["skipped"],
+        "parts": placeholder_parts,
+    }
 
 
 # ---------------------------------------------------------------------------

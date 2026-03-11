@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, Cpu, CheckCircle, Search, Library, Package } from 'lucide-react'
+import {
+  Upload, Cpu, CheckCircle, Search, Library, Package,
+  FileSpreadsheet, AlertTriangle, FileText,
+} from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
@@ -20,6 +23,12 @@ export default function ComponentLibrarian() {
   const [libraryParts, setLibraryParts]   = useState([])
   const [searchQuery, setSearchQuery]     = useState('')
   const [isSearching, setIsSearching]     = useState(false)
+
+  // BOM import
+  const [bomResult, setBomResult]       = useState(null)
+  const [isBomLoading, setIsBomLoading] = useState(false)
+  const [bomError, setBomError]         = useState(null)
+  const [bomDragOver, setBomDragOver]   = useState(false)
 
   // Load library on mount
   const fetchLibrary = useCallback(async (query = '') => {
@@ -104,6 +113,38 @@ export default function ComponentLibrarian() {
     )
   }
 
+  // BOM import handler
+  const handleBomImport = async (file) => {
+    if (!file) return
+    setIsBomLoading(true)
+    setBomError(null)
+    setBomResult(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await fetch('/api/library/import-bom', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'BOM import failed')
+      }
+      const data = await res.json()
+      setBomResult(data)
+      fetchLibrary(searchQuery)
+    } catch (e) {
+      setBomError(e.message)
+    } finally {
+      setIsBomLoading(false)
+    }
+  }
+
+  const handleBomFileInput = (e) => handleBomImport(e.target.files?.[0])
+  const handleBomDrop = (e) => {
+    e.preventDefault()
+    setBomDragOver(false)
+    handleBomImport(e.dataTransfer.files?.[0])
+  }
+
   const hasRows = Boolean(extractedData?.rows?.length)
 
   return (
@@ -117,8 +158,8 @@ export default function ComponentLibrarian() {
           Component Datasheet Extractor
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-          Upload a PDF datasheet — AI extracts Xpedition-ready parameters and pushes them directly
-          to your component databook. Every part is saved to the searchable library below.
+          Upload a PDF datasheet for AI parameter extraction, or import an Xpedition BOM CSV to
+          bulk-add ICs to the library. Every part is saved to the searchable library below.
         </p>
       </section>
 
@@ -138,6 +179,102 @@ export default function ComponentLibrarian() {
             )}
           </CardContent>
         </Card>
+      </section>
+
+      {/* BOM Import */}
+      <section className="mb-14">
+        <SectionLabel icon={<FileSpreadsheet className="h-4 w-4" />} step="" label="Import from BOM CSV" />
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground mb-3">
+              Upload an Xpedition BOM CSV to bulk-add ICs and active devices to the library.
+              Passives (R, C, L, ferrites, test points) are automatically skipped.
+              Parts already in the library are left untouched.
+            </p>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setBomDragOver(true) }}
+              onDragLeave={() => setBomDragOver(false)}
+              onDrop={handleBomDrop}
+              className={[
+                'border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer',
+                bomDragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
+              ].join(' ')}
+              onClick={() => document.getElementById('bom-import-input').click()}
+            >
+              <input
+                id="bom-import-input"
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={handleBomFileInput}
+              />
+              <FileSpreadsheet className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-foreground font-medium">
+                {isBomLoading ? 'Importing BOM…' : 'Drop a BOM CSV here or click to browse'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Supports Xpedition, Altium, OrCAD, and generic CSV formats
+              </p>
+            </div>
+            {isBomLoading && (
+              <p className="text-xs text-muted-foreground text-center mt-3 animate-pulse">
+                Parsing BOM and filtering ICs…
+              </p>
+            )}
+            {bomError && (
+              <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+                <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
+                  Import Error
+                </p>
+                <p className="text-xs text-muted-foreground">{bomError}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* BOM Import Results */}
+        {bomResult && (
+          <Card className="mt-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <CheckCircle className="h-5 w-5 text-green-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">BOM Import Complete</p>
+                  <p className="text-xs text-muted-foreground">{bomResult.filename}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div className="rounded-md bg-secondary/30 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-foreground">{bomResult.total_bom_lines}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">BOM Lines</p>
+                </div>
+                <div className="rounded-md bg-secondary/30 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-foreground">{bomResult.ic_candidates}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">ICs Found</p>
+                </div>
+                <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-emerald-400">{bomResult.added_to_library}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Added to Library</p>
+                </div>
+                <div className="rounded-md bg-secondary/30 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-muted-foreground">{bomResult.already_in_library}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Already Existed</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground/60">{bomResult.passives_skipped} passives skipped.</span>
+                {bomResult.added_to_library > 0 && (
+                  <span className="ml-1">
+                    New parts are marked <span className="text-amber-400 font-medium">Needs Datasheet</span> — 
+                    click into each part and upload its PDF datasheet to populate engineering parameters.
+                  </span>
+                )}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       {/* Step 2 — Extracted Parameters */}
@@ -271,6 +408,12 @@ function PartCard({ part, onProgramChange }) {
         </div>
         {part.Summary && (
           <p className="text-xs text-muted-foreground leading-relaxed pt-1">{part.Summary}</p>
+        )}
+        {part.needs_datasheet && (
+          <div className="flex items-center gap-1.5 pt-1.5">
+            <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />
+            <span className="text-[10px] text-amber-400 font-medium uppercase tracking-wider">Needs Datasheet</span>
+          </div>
         )}
       </CardHeader>
 

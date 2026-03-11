@@ -40,7 +40,7 @@ def upsert_parts(new_parts: List[Dict[str, Any]], source_file: str) -> int:
             pn = part.get("Part_Number")
             if not pn:
                 continue
-            entry = {**part, "source_file": source_file, "added_at": timestamp}
+            entry = {**part, "source_file": source_file, "added_at": timestamp, "needs_datasheet": False}
             if pn in index:
                 parts[index[pn]] = entry  # update in place
             else:
@@ -49,6 +49,44 @@ def upsert_parts(new_parts: List[Dict[str, Any]], source_file: str) -> int:
                 added += 1
         _save(parts)
     return added
+
+
+def upsert_placeholder_parts(
+    parts: List[Dict[str, Any]],
+    source_file: str,
+) -> Dict[str, int]:
+    """Add skeleton part entries from a BOM import (no datasheet data).
+
+    Only creates entries for parts that do NOT already exist in the library.
+    Existing parts are left untouched (we never overwrite datasheet data with
+    less-complete BOM data).
+
+    Returns dict with counts: {"added": N, "skipped": M}.
+    """
+    timestamp = datetime.now(timezone.utc).isoformat()
+    with _lock:
+        existing = _load()
+        index = {p["Part_Number"]: i for i, p in enumerate(existing)}
+        added = 0
+        skipped = 0
+        for part in parts:
+            pn = part.get("Part_Number")
+            if not pn:
+                continue
+            if pn in index:
+                skipped += 1
+                continue
+            entry = {
+                **part,
+                "source_file": source_file,
+                "added_at": timestamp,
+                "needs_datasheet": True,
+            }
+            existing.append(entry)
+            index[pn] = len(existing) - 1
+            added += 1
+        _save(existing)
+    return {"added": added, "skipped": skipped}
 
 
 def get_all() -> List[Dict[str, Any]]:

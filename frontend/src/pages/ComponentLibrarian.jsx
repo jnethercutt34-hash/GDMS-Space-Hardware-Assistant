@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import UploadZone from '../components/UploadZone'
 import DataTable from '../components/DataTable'
+import SectionLabel from '../components/SectionLabel'
 
 export default function ComponentLibrarian() {
   const [extractedData, setExtractedData] = useState(null)

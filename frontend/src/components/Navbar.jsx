@@ -2,15 +2,15 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Satellite, Menu, X } from 'lucide-react'
 
-// Ordered by design flow: define → architect → stackup → constrain+COM → bridge → audit → verify
+// Ordered by design flow: define → architect → stackup → constrain+COM → verify → bridge → audit
 const NAV_ITEMS = [
   { to: '/librarian',      label: 'Librarian',       step: '1' },
   { to: '/block-diagram',  label: 'Block Diagram',   step: '2' },
   { to: '/stackup',        label: 'Stackup',         step: '3' },
   { to: '/constraints',    label: 'SI/PI Guide',     step: '4' },
-  { to: '/fpga',           label: 'FPGA Bridge',     step: '5' },
-  { to: '/bom',            label: 'BOM Analyzer',    step: '6' },
-  { to: '/drc',            label: 'Schematic DRC',   step: '7' },
+  { to: '/drc',            label: 'Schematic DRC',   step: '5' },
+  { to: '/fpga',           label: 'FPGA Bridge',     step: '6' },
+  { to: '/bom',            label: 'BOM Analyzer',    step: '7' },
 ]
 
 export default function Navbar() {

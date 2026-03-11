@@ -23,9 +23,9 @@ export default function App() {
             <Route path="/block-diagram"  element={<BlockDiagram />} />
             <Route path="/stackup"        element={<StackupDesigner />} />
             <Route path="/constraints"    element={<SiPiGuide />} />
+            <Route path="/drc"            element={<SchematicDrc />} />
             <Route path="/fpga"           element={<FpgaBridge />} />
             <Route path="/bom"            element={<BomAnalyzer />} />
-            <Route path="/drc"            element={<SchematicDrc />} />
             {/* Legacy /com route → redirect to SI/PI Guide */}
             <Route path="/com"            element={<Navigate to="/constraints" replace />} />
             {/* Catch-all → home */}

@@ -71,9 +71,24 @@ const MODULES = [
     ],
   },
   {
+    to: '/drc',
+    icon: ShieldCheck,
+    step: '5',
+    title: 'Schematic DRC',
+    color: 'text-red-400 bg-red-500/10 border-red-500/20',
+    summary:
+      'Upload a netlist and run 13 deterministic design-rule checks plus AI heuristics. Catches unconnected power pins, missing decoupling, unterminated clocks, and space-compliance gaps like missing SEL protection.',
+    bullets: [
+      'Parses Xpedition ASC, OrCAD, and CSV netlists',
+      '13 built-in rules (power, connectivity, naming, space)',
+      'AI checks interface protocols & power sequencing',
+      'Export DRC report as Markdown or CSV',
+    ],
+  },
+  {
     to: '/fpga',
     icon: GitCompare,
-    step: '5',
+    step: '6',
     title: 'FPGA I/O Bridge',
     color: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
     summary:
@@ -88,7 +103,7 @@ const MODULES = [
   {
     to: '/bom',
     icon: ClipboardList,
-    step: '6',
+    step: '7',
     title: 'BOM Analyzer',
     color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     summary:
@@ -100,21 +115,6 @@ const MODULES = [
       'Export annotated BOM CSV + Markdown risk report',
     ],
   },
-  {
-    to: '/drc',
-    icon: ShieldCheck,
-    step: '7',
-    title: 'Schematic DRC',
-    color: 'text-red-400 bg-red-500/10 border-red-500/20',
-    summary:
-      'Upload a netlist and run 13 deterministic design-rule checks plus AI heuristics. Catches unconnected power pins, missing decoupling, unterminated clocks, and space-compliance gaps like missing SEL protection.',
-    bullets: [
-      'Parses Xpedition ASC, OrCAD, and CSV netlists',
-      '13 built-in rules (power, connectivity, naming, space)',
-      'AI checks interface protocols & power sequencing',
-      'Export DRC report as Markdown or CSV',
-    ],
-  },
 ]
 
 // Flow steps for the visual pipeline
@@ -123,9 +123,9 @@ const FLOW_STEPS = [
   { step: '2', label: 'Architect' },
   { step: '3', label: 'Stackup' },
   { step: '4', label: 'SI/PI + COM' },
-  { step: '5', label: 'Bridge I/O' },
-  { step: '6', label: 'Audit BOM' },
-  { step: '7', label: 'Verify DRC' },
+  { step: '5', label: 'Verify DRC' },
+  { step: '6', label: 'Bridge I/O' },
+  { step: '7', label: 'Audit BOM' },
 ]
 
 // ---------------------------------------------------------------------------

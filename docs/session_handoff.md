@@ -190,21 +190,21 @@ Replaced the O(n×m) `SequenceMatcher` loop with a `_TrigramIndex` class:
 ### Build status
 ```
 frontend/ $ npm run build
-✓ 1796 modules transformed   ← clean, no warnings
+✓ 1797 modules transformed   ← clean, no warnings
 ```
 
 ### Test suite
 ```
 backend/ $ python -m pytest tests/ -q
-265 passed (all 7 phases covered)
+265 passed (all 7 modules covered)
 ```
-- 23 tests — Phase 1 (librarian, AI extractor, PDF extractor, Xpedition stub)
-- 37 tests — Phase 2 (FPGA delta engine, AI risk assessor, I/O export)
-- 26 tests — Phase 3 (constraint models, AI extraction, CES export, router)
-- 33 tests — Phase 4 (block diagram models, generator, store, export, router)
-- 33 tests — Phase 5 (COM models, calculator, export, router)
-- 43 tests — Phase 6 (BOM models, parsing, cross-ref, risk, export, router)
-- 70 tests — Phase 7 (DRC models, netlist parser, 13 rules, AI checker, router, export)
+- 23 tests — Step 1 Librarian (AI extractor, PDF extractor, Xpedition stub)
+- 37 tests — Step 6 FPGA Bridge (delta engine, AI risk assessor, I/O export)
+- 26 tests — Constraint models (AI extraction, CES export, router)
+- 33 tests — Step 2 Block Diagram (models, generator, store, export, router)
+- 33 tests — COM Channel (models, calculator, export, router)
+- 43 tests — Step 7 BOM Analyzer (models, parsing, cross-ref, risk, export, router)
+- 70 tests — Step 5 Schematic DRC (models, netlist parser, 13 rules, AI checker, router, export)
 
 ### Servers
 | Process | URL | Command |
@@ -240,7 +240,8 @@ backend/
 │   └── schematic_drc.py          ← Netlist, DRCViolation, DRCReport, ViolationCategory
 │                                    (incl. SpaceCompliance), AIViolationBatch
 ├── routers/
-│   ├── librarian.py              ← /upload-datasheet, /push-to-databook, /library, /library/search
+│   ├── librarian.py              ← /upload-datasheet, /push-to-databook, /library, /library/search,
+│   │                                /library/import-bom (BOM CSV → placeholder parts)
 │   ├── fpga.py                   ← /compare-fpga-pins, /export-io-script
 │   ├── constraint.py             ← /extract-constraints, /export-ces-script
 │   ├── block_diagram.py          ← CRUD + /generate, /export-netlist
@@ -255,7 +256,7 @@ backend/
 │   ├── csv_delta.py              ← pandas inner-join delta engine
 │   ├── fpga_risk_assessor.py     ← AI SI/PI risk assessment for pin swaps
 │   ├── xpedition_io_export.py    ← generates .py script for Xpedition I/O Designer
-│   ├── part_library.py           ← JSON file store, upsert_parts(), search()
+│   ├── part_library.py           ← JSON file store, upsert_parts(), upsert_placeholder_parts(), search()
 │   ├── constraint_extractor.py   ← AI SI/PI constraint extraction
 │   ├── xpedition_ces_export.py   ← generates .py script for CES
 │   ├── block_diagram_generator.py← AI diagram generation from parts or text
@@ -286,13 +287,15 @@ frontend/src/
 ├── lib/
 │   └── downloadBlob.js           ← shared export download utility
 ├── pages/
-│   ├── ComponentLibrarian.jsx    ← Phase 1 UI + Part Library
-│   ├── FpgaBridge.jsx            ← Phase 2 UI + Export
-│   ├── ConstraintEditor.jsx      ← Phase 3 UI + CES export
-│   ├── BlockDiagram.jsx          ← Phase 4 UI — drag canvas, SVG lines, add-block form
-│   ├── ComAnalysis.jsx           ← Phase 5 UI — channel builder, COM result, exports
-│   ├── BomAnalyzer.jsx           ← Phase 6 UI — BOM upload, summary, risk table, exports
-│   └── SchematicDrc.jsx          ← Phase 7 UI — netlist upload, violation table, exports
+│   ├── Home.jsx                  ← Home page — module overview cards, design flow pipeline
+│   ├── ComponentLibrarian.jsx    ← Step 1 — PDF upload + BOM CSV import + Part Library
+│   ├── PartDetail.jsx            ← Part detail page (linked from library cards)
+│   ├── BlockDiagram.jsx          ← Step 2 — drag canvas, SVG lines, port wiring
+│   ├── StackupDesigner.jsx       ← Step 3 — layer editor, impedance calc, architecture analysis
+│   ├── SiPiGuide.jsx             ← Step 4 — SI/PI design rules + COM channel analysis (merged)
+│   ├── SchematicDrc.jsx          ← Step 5 — netlist upload, 13 rules + AI checks
+│   ├── FpgaBridge.jsx            ← Step 6 — FPGA pin delta + risk assessment
+│   └── BomAnalyzer.jsx           ← Step 7 — BOM upload, risk table, exports
 └── components/
     ├── Navbar.jsx                ← NavLink, responsive hamburger (xl breakpoint)
     ├── SectionLabel.jsx          ← shared step-heading component
@@ -319,7 +322,7 @@ frontend/src/
 
 ---
 
-## Session 2026-03-11 Changes
+## Session 2026-03-11 Changes (Early)
 
 ### Phase 7 DRC Tests — COMPLETE (70 tests)
 - Created `tests/test_drc.py` — 70 tests, all passing
@@ -340,6 +343,57 @@ Full rewrite of `pages/BlockDiagram.jsx` adding interactive port wiring:
 - **Dynamic block height**: Blocks grow vertically based on port count
 - **Port-aware connection lines**: SVG bezier curves now route from exact port positions, not just block center-edge
 - **Backward compatible**: AI-generated diagrams and API connections still work; existing connections without port IDs fall back to center-edge routing
+
+### Home Page + App Restructuring
+- Added `Home.jsx` — module overview cards with descriptions and bullet points, design flow pipeline visualization
+- Added `PartDetail.jsx` — clickable part detail pages from library cards
+- Added `StackupDesigner.jsx` — PCB stackup design with architecture analysis, templates, impedance calculator
+- Added `SiPiGuide.jsx` — combined SI/PI design guide with integrated COM channel analysis
+- Added PCB Stackup Designer + reordered modules by design flow
+- Merged COM Channel Analysis into SI/PI Design Guide (single unified module)
+
+---
+
+## Session 2026-03-11 Changes (Latest)
+
+### Module Reorder — Schematic DRC moved to Step 5
+- Moved Schematic DRC from step 7 to step 5 (right after SI/PI Guide)
+- New order: Librarian (1) → Block Diagram (2) → Stackup (3) → SI/PI Guide (4) → **Schematic DRC (5)** → FPGA Bridge (6) → BOM Analyzer (7)
+- Updated `Navbar.jsx`, `App.jsx`, `Home.jsx` (MODULES + FLOW_STEPS arrays)
+
+### Code Audit Cleanup
+- **Deleted orphaned files**: `ComAnalysis.jsx` (483 lines), `ConstraintEditor.jsx` (137 lines) — both superseded by `SiPiGuide.jsx`
+- **Fixed stale Phase badges**: Updated all page hero badges from old "Phase N" to correct "Step N" labels
+- **StackupDesigner cross-section**: Replaced empty `<></>` fragment with actual dielectric spacer visual (shows thickness in mil between copper layers)
+- **StackupDesigner error handling**: Replaced 6 silent `catch {}` blocks with proper error state + dismissible error banner
+
+### BOM CSV Import to Component Librarian — NEW FEATURE
+Added ability to import an Xpedition BOM CSV to bulk-add ICs to the part library:
+
+**Backend:**
+- `POST /api/library/import-bom` — new endpoint in `routers/librarian.py`
+  - Parses BOM CSV using existing `parse_bom_csv()` from `bom_analyzer.py`
+  - Filters ICs from passives using ref-des heuristics (keeps `U`, `IC`, `Q`, `D`, etc.; skips `R`, `C`, `L`, `TP`, `FID`)
+  - Also filters by description keywords (skips "resistor", "capacitor", etc.)
+  - Deduplicates by part number
+  - Creates placeholder entries with `needs_datasheet: true` flag
+- `part_library.py` — new `upsert_placeholder_parts()` function
+  - Only creates entries for parts NOT already in the library (never overwrites datasheet data)
+  - Returns `{added: N, skipped: M}` counts
+- `upsert_parts()` (datasheet upload path) — now explicitly sets `needs_datasheet: false` so the flag is cleared when a datasheet is uploaded for a BOM-imported part
+
+**Frontend (`ComponentLibrarian.jsx`):**
+- New "Import from BOM CSV" section with drag-and-drop upload zone
+- Results card shows: total BOM lines, ICs found, added to library, already existed, passives skipped
+- Instructs engineer to click into each new part and upload its PDF datasheet
+- Part library cards show amber **"Needs Datasheet"** indicator for placeholder parts
+
+**Workflow:**
+1. Engineer exports BOM CSV from Xpedition
+2. Drops it on the Librarian page
+3. ICs are auto-added to the library as placeholders
+4. Engineer clicks into each part → uploads its PDF datasheet → AI extracts full parameters
+5. `needs_datasheet` flag clears automatically when datasheet is processed
 
 ---
 

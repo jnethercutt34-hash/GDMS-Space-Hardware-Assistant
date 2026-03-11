@@ -751,7 +751,7 @@ export default function BlockDiagram() {
       {/* Hero */}
       <section className="mb-14">
         <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
-          Phase 4 · Block Diagram Builder
+          Step 2 · Block Diagram Builder
         </Badge>
         <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           System Block Diagram

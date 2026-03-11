@@ -154,7 +154,7 @@ export default function BomAnalyzer() {
       {/* Hero */}
       <section className="mb-14">
         <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
-          Phase 6 · BOM Analyzer
+          Step 7 · BOM Analyzer
         </Badge>
         <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           BOM Risk Analyzer

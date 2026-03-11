@@ -127,14 +127,19 @@ function StackupCrossSection({ layers }) {
   return (
     <div className="flex flex-col items-center gap-0 w-full max-w-md mx-auto">
       {layers.map((l, i) => (
-        <div key={l.id || i} className="w-full flex items-center gap-2">
-          {/* Copper bar */}
-          <div className={`h-2 flex-1 ${barColors[l.layer_type] || barColors.Signal} rounded-sm`}
-               title={l.name} />
-          <span className="text-[9px] text-muted-foreground w-28 truncate">{l.name}</span>
-          {/* Dielectric spacer */}
+        <div key={l.id || i}>
+          <div className="w-full flex items-center gap-2">
+            {/* Copper bar */}
+            <div className={`h-2 flex-1 ${barColors[l.layer_type] || barColors.Signal} rounded-sm`}
+                 title={l.name} />
+            <span className="text-[9px] text-muted-foreground w-28 truncate">{l.name}</span>
+          </div>
+          {/* Dielectric spacer between layers */}
           {i < layers.length - 1 && (
-            <></>
+            <div className="w-full flex items-center gap-2 my-0.5">
+              <div className="h-1 flex-1 bg-muted-foreground/10 rounded-sm" title={`Dielectric ${l.dielectric_thickness_mil || 4} mil`} />
+              <span className="text-[8px] text-muted-foreground/40 w-28 truncate">{l.dielectric_thickness_mil || 4} mil</span>
+            </div>
           )}
         </div>
       ))}
@@ -168,8 +173,9 @@ export default function StackupDesigner() {
   })
   const [impResult, setImpResult] = useState(null)
 
-  // Loading states
+  // Loading & error states
   const [loading, setLoading] = useState({})
+  const [error, setError]     = useState(null)
 
   // Available interfaces for manual selection
   const INTERFACE_OPTIONS = [
@@ -201,7 +207,7 @@ export default function StackupDesigner() {
       setAnalysis(data)
       // Auto-set impedance targets from analysis
       if (data.impedance_targets?.length) setImpTargets(data.impedance_targets)
-    } catch {}
+    } catch (e) { setError(e.message) }
     setLoading(p => ({ ...p, analyze: false }))
   }
 
@@ -214,7 +220,7 @@ export default function StackupDesigner() {
       setLayers(data.layers || [])
       setStackupName(data.name || `${lc}-Layer Stackup`)
       setStackupId(data.id)
-    } catch {}
+    } catch (e) { setError(e.message) }
     setLoading(p => ({ ...p, template: false }))
   }
 
@@ -269,7 +275,7 @@ export default function StackupDesigner() {
       // Refresh list
       const list = await fetch(`${API}/api/stackups`).then(r => r.json())
       setSavedStackups(list)
-    } catch {}
+    } catch (e) { setError(e.message) }
     setLoading(p => ({ ...p, save: false }))
   }
 
@@ -283,7 +289,7 @@ export default function StackupDesigner() {
       setStackupId(data.id)
       setBoardMaterial(data.board_material || MATERIALS[0])
       setImpTargets(data.impedance_targets || [])
-    } catch {}
+    } catch (e) { setError(e.message) }
   }
 
   // ── Export ────────────────────────────────────────────────
@@ -301,7 +307,7 @@ export default function StackupDesigner() {
       a.download = `stackup_${id}.md`
       a.click()
       URL.revokeObjectURL(url)
-    } catch {}
+    } catch (e) { setError(e.message) }
   }
 
   // ── Impedance calc ────────────────────────────────────────
@@ -313,7 +319,7 @@ export default function StackupDesigner() {
         body: JSON.stringify(impCalc),
       })
       setImpResult(await res.json())
-    } catch {}
+    } catch (e) { setError(e.message) }
   }
 
   // Toggle interface for manual selection
@@ -349,6 +355,17 @@ export default function StackupDesigner() {
           then customize layers, estimate impedances, and export fab-ready documentation.
         </p>
       </section>
+
+      {/* Error banner */}
+      {error && (
+        <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">Error</p>
+            <p className="text-xs text-muted-foreground">{error}</p>
+          </div>
+          <button onClick={() => setError(null)} className="text-muted-foreground hover:text-foreground ml-4 text-lg leading-none">&times;</button>
+        </div>
+      )}
 
       {/* ── Step 1: Architecture Context ── */}
       <section className="mb-14">

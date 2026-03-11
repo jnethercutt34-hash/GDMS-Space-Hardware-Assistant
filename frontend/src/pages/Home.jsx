@@ -1,18 +1,19 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  Satellite, Upload, Cpu, GitCompare, Ruler, Boxes, Radio,
-  ClipboardList, ShieldCheck, ArrowRight, Zap,
+  Satellite, Upload, Cpu, GitCompare, Ruler, Boxes, Radio, Layers,
+  ClipboardList, ShieldCheck, ArrowRight, Zap, ChevronRight,
 } from 'lucide-react'
 import { Card, CardContent } from '../components/ui/card'
 
 // ---------------------------------------------------------------------------
-// Module definitions
+// Module definitions — ordered by design flow
 // ---------------------------------------------------------------------------
 
 const MODULES = [
   {
     to: '/librarian',
     icon: Upload,
+    step: '1',
     title: 'Component Librarian',
     color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
     summary:
@@ -25,22 +26,39 @@ const MODULES = [
     ],
   },
   {
-    to: '/fpga',
-    icon: GitCompare,
-    title: 'FPGA I/O Bridge',
-    color: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+    to: '/block-diagram',
+    icon: Boxes,
+    step: '2',
+    title: 'Block Diagram Builder',
+    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     summary:
-      'Compare two FPGA pin-map CSVs side-by-side and instantly see every pin swap. AI flags SI/PI risk for each change so you can catch bank moves and termination issues before layout.',
+      'Build system-level block diagrams on a drag-and-drop canvas or let AI generate one from a parts list. Click ports to wire connections, name signals, then export a netlist seed for Xpedition.',
     bullets: [
-      'Upload old vs. new pin-map CSVs',
-      'Delta engine highlights every swap',
-      'AI risk assessment per pin change',
-      'Export Xpedition I/O Designer script',
+      'Drag-and-drop block canvas with dot grid',
+      'Click-to-wire port connections with interface tagging',
+      'AI generates diagrams from part numbers',
+      'Export netlist CSV or Xpedition script',
+    ],
+  },
+  {
+    to: '/stackup',
+    icon: Layers,
+    step: '3',
+    title: 'PCB Stackup Designer',
+    color: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+    summary:
+      'Design your PCB layer stackup informed by your system architecture. Link a block diagram to auto-detect interfaces, get layer-count and material recommendations, customize each layer, calculate impedances, and export fab-ready documentation.',
+    bullets: [
+      'Architecture-aware analysis suggests layer count & material',
+      '7 pre-built templates (4 to 16 layers)',
+      'Microstrip & stripline impedance calculator',
+      'Export stackup doc for fabrication',
     ],
   },
   {
     to: '/constraints',
     icon: Ruler,
+    step: '4',
     title: 'SI/PI Design Guide',
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
     summary:
@@ -53,22 +71,24 @@ const MODULES = [
     ],
   },
   {
-    to: '/block-diagram',
-    icon: Boxes,
-    title: 'Block Diagram Builder',
-    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    to: '/fpga',
+    icon: GitCompare,
+    step: '5',
+    title: 'FPGA I/O Bridge',
+    color: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
     summary:
-      'Build system-level block diagrams on a drag-and-drop canvas or let AI generate one from a parts list. Click ports to wire connections, name signals, then export a netlist seed for Xpedition.',
+      'Compare two FPGA pin-map CSVs side-by-side and instantly see every pin swap. AI flags SI/PI risk for each change so you can catch bank moves and termination issues before layout.',
     bullets: [
-      'Drag-and-drop block canvas with dot grid',
-      'Click-to-wire port connections',
-      'AI generates diagrams from part numbers',
-      'Export netlist CSV or Xpedition script',
+      'Upload old vs. new pin-map CSVs',
+      'Delta engine highlights every swap',
+      'AI risk assessment per pin change',
+      'Export Xpedition I/O Designer script',
     ],
   },
   {
     to: '/com',
     icon: Radio,
+    step: '6',
     title: 'COM Channel Analysis',
     color: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
     summary:
@@ -83,6 +103,7 @@ const MODULES = [
   {
     to: '/bom',
     icon: ClipboardList,
+    step: '7',
     title: 'BOM Analyzer',
     color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     summary:
@@ -97,6 +118,7 @@ const MODULES = [
   {
     to: '/drc',
     icon: ShieldCheck,
+    step: '8',
     title: 'Schematic DRC',
     color: 'text-red-400 bg-red-500/10 border-red-500/20',
     summary:
@@ -108,6 +130,18 @@ const MODULES = [
       'Export DRC report as Markdown or CSV',
     ],
   },
+]
+
+// Flow steps for the visual pipeline
+const FLOW_STEPS = [
+  { step: '1', label: 'Define Parts' },
+  { step: '2', label: 'Architect' },
+  { step: '3', label: 'Stackup' },
+  { step: '4', label: 'Constrain' },
+  { step: '5', label: 'Bridge I/O' },
+  { step: '6', label: 'Simulate' },
+  { step: '7', label: 'Audit BOM' },
+  { step: '8', label: 'Verify DRC' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -130,7 +164,10 @@ function ModuleCard({ mod }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-1">
-              <h3 className="font-heading text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+              <h3 className="font-heading text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                <span className="text-[10px] font-mono text-muted-foreground/50 bg-secondary/50 rounded px-1.5 py-0.5">
+                  {mod.step}
+                </span>
                 {mod.title}
               </h3>
               <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -177,15 +214,14 @@ export default function Home() {
 
         <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground leading-relaxed">
           A unified suite of tools for space and defense hardware engineers.
-          Extract component data from datasheets, compare FPGA pin maps, define
-          SI/PI constraints, build system block diagrams, analyze high-speed
-          channels, audit BOMs for risk, and run schematic design-rule checks —
+          Follow the design flow from component selection through stackup design,
+          SI/PI constraints, simulation prep, BOM auditing, and DRC verification —
           all with AI acceleration and Xpedition integration.
         </p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-6 text-xs text-muted-foreground/60">
           <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 7 Engineering Modules
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 8 Engineering Modules
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" /> AI-Assisted Extraction
@@ -196,6 +232,26 @@ export default function Home() {
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" /> Air-Gap Ready
           </span>
+        </div>
+      </section>
+
+      {/* Design flow pipeline */}
+      <section className="mb-14">
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-4 text-center">
+          Design Flow
+        </h2>
+        <div className="flex items-center justify-center gap-1 flex-wrap">
+          {FLOW_STEPS.map((fs, i) => (
+            <div key={fs.step} className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-secondary/30 px-3 py-1.5">
+                <span className="text-[10px] font-mono text-primary font-bold">{fs.step}</span>
+                <span className="text-[10px] text-muted-foreground">{fs.label}</span>
+              </div>
+              {i < FLOW_STEPS.length - 1 && (
+                <ChevronRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -216,25 +272,30 @@ export default function Home() {
         <h2 className="font-heading text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Cpu className="h-4 w-4 text-primary" /> Getting Started
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3 text-xs text-muted-foreground leading-relaxed">
+        <div className="grid gap-4 sm:grid-cols-4 text-xs text-muted-foreground leading-relaxed">
           <div>
             <p className="font-semibold text-foreground mb-1">1. Build your parts library</p>
             <p>
               Start with the <strong>Component Librarian</strong> — upload datasheets for the parts
-              on your board. AI extracts all key parameters and saves them to a searchable library
-              that other modules reference.
+              on your board. AI extracts all key parameters and saves them to a searchable library.
             </p>
           </div>
           <div>
-            <p className="font-semibold text-foreground mb-1">2. Design & constrain</p>
+            <p className="font-semibold text-foreground mb-1">2. Architect & stack up</p>
             <p>
-              Use the <strong>Block Diagram Builder</strong> to map your system architecture, then
-              define signal-integrity rules in the <strong>SI/PI Design Guide</strong>.
-              Check your FPGA pin map with the <strong>FPGA I/O Bridge</strong>.
+              Use the <strong>Block Diagram Builder</strong> to map your system, then feed it into the
+              <strong> Stackup Designer</strong> for architecture-aware layer recommendations.
             </p>
           </div>
           <div>
-            <p className="font-semibold text-foreground mb-1">3. Verify & export</p>
+            <p className="font-semibold text-foreground mb-1">3. Constrain & bridge</p>
+            <p>
+              Set SI/PI rules in the <strong>SI/PI Design Guide</strong>, check your FPGA pin map
+              with the <strong>FPGA I/O Bridge</strong>, and model channels with <strong>COM Analysis</strong>.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-foreground mb-1">4. Verify & export</p>
             <p>
               Run a <strong>BOM Analyzer</strong> audit for lifecycle and radiation risk.
               Upload your netlist to <strong>Schematic DRC</strong> for a full rule check.

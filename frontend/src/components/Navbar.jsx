@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Satellite, Menu, X } from 'lucide-react'
 
+// Ordered by design flow: define → architect → stackup → constrain → bridge → simulate → audit → verify
 const NAV_ITEMS = [
-  { to: '/librarian',      label: 'Librarian' },
-  { to: '/fpga',            label: 'FPGA Bridge' },
-  { to: '/constraints',     label: 'SI/PI Guide' },
-  { to: '/block-diagram',   label: 'Block Diagram' },
-  { to: '/com',             label: 'COM Analysis' },
-  { to: '/bom',             label: 'BOM Analyzer' },
-  { to: '/drc',             label: 'Schematic DRC' },
+  { to: '/librarian',      label: 'Librarian',       step: '1' },
+  { to: '/block-diagram',  label: 'Block Diagram',   step: '2' },
+  { to: '/stackup',        label: 'Stackup',         step: '3' },
+  { to: '/constraints',    label: 'SI/PI Guide',     step: '4' },
+  { to: '/fpga',           label: 'FPGA Bridge',     step: '5' },
+  { to: '/com',            label: 'COM Analysis',    step: '6' },
+  { to: '/bom',            label: 'BOM Analyzer',    step: '7' },
+  { to: '/drc',            label: 'Schematic DRC',   step: '8' },
 ]
 
 export default function Navbar() {
@@ -41,13 +43,14 @@ export default function Navbar() {
                 to={item.to}
                 className={({ isActive }) =>
                   [
-                    'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                    'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5',
                     isActive
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
                   ].join(' ')
                 }
               >
+                <span className="text-[9px] font-mono opacity-50">{item.step}</span>
                 {item.label}
               </NavLink>
             ))}
@@ -75,13 +78,14 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(false)}
                 className={({ isActive }) =>
                   [
-                    'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                    'flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
                     isActive
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
                   ].join(' ')
                 }
               >
+                <span className="text-[9px] font-mono opacity-50">{item.step}</span>
                 <span>{item.label}</span>
               </NavLink>
             ))}

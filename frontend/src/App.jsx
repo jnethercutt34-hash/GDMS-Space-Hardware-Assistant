@@ -5,6 +5,7 @@ import ComponentLibrarian from './pages/ComponentLibrarian'
 import FpgaBridge from './pages/FpgaBridge'
 import SiPiGuide from './pages/SiPiGuide'
 import BlockDiagram from './pages/BlockDiagram'
+import StackupDesigner from './pages/StackupDesigner'
 import ComAnalysis from './pages/ComAnalysis'
 import BomAnalyzer from './pages/BomAnalyzer'
 import SchematicDrc from './pages/SchematicDrc'
@@ -20,9 +21,10 @@ export default function App() {
             <Route path="/"               element={<Home />} />
             <Route path="/librarian"      element={<ComponentLibrarian />} />
             <Route path="/part/:partNumber" element={<PartDetail />} />
-            <Route path="/fpga"           element={<FpgaBridge />} />
-            <Route path="/constraints"    element={<SiPiGuide />} />
             <Route path="/block-diagram"  element={<BlockDiagram />} />
+            <Route path="/stackup"        element={<StackupDesigner />} />
+            <Route path="/constraints"    element={<SiPiGuide />} />
+            <Route path="/fpga"           element={<FpgaBridge />} />
             <Route path="/com"            element={<ComAnalysis />} />
             <Route path="/bom"            element={<BomAnalyzer />} />
             <Route path="/drc"            element={<SchematicDrc />} />

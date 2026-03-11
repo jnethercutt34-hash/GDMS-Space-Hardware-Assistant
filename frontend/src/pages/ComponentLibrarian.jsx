@@ -266,17 +266,6 @@ function PartCard({ part }) {
   )
 }
 
-function SectionLabel({ icon, step, label }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className="text-primary">{icon}</span>
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        {step ? `Step ${step} — ` : ''}{label}
-      </p>
-    </div>
-  )
-}
-
 function PushResultPanel({ results }) {
   return (
     <div className="space-y-3">

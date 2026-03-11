@@ -38,9 +38,42 @@ class ComponentData(BaseModel):
         default=None,
         description="Total number of pins or balls as a plain integer string (e.g. '28', '256').",
     )
+    Operating_Temperature_Range: Optional[str] = Field(
+        default=None,
+        description=(
+            "Operating temperature range as a min/max string with units "
+            "(e.g. '-55 to +125 C', '0 to +70 C', '-40 to +85 C'). "
+            "Critical for space/defense grading: commercial (0-70C), "
+            "industrial (-40-85C), military/space (-55 to +125C)."
+        ),
+    )
     Thermal_Resistance: Optional[str] = Field(
         default=None,
-        description="Junction-to-ambient thermal resistance with units (e.g. '125 °C/W', '45.3 °C/W').",
+        description="Junction-to-ambient thermal resistance with units (e.g. '125 C/W', '45.3 C/W').",
+    )
+    Radiation_TID: Optional[str] = Field(
+        default=None,
+        description=(
+            "Total Ionizing Dose (TID) rating with units "
+            "(e.g. '100 krad(Si)', '300 krad(Si)', '> 1 Mrad(Si)'). "
+            "Required for space qualification; omit if not stated in the datasheet."
+        ),
+    )
+    Radiation_SEL_Threshold: Optional[str] = Field(
+        default=None,
+        description=(
+            "Single Event Latchup (SEL) LET threshold with units "
+            "(e.g. 'SEL immune to 80 MeV·cm²/mg', '> 75 MeV·cm²/mg', 'SEL-free'). "
+            "Devices with SEL LET < 37 MeV·cm²/mg are unsuitable for unprotected space use."
+        ),
+    )
+    Radiation_SEU_Rate: Optional[str] = Field(
+        default=None,
+        description=(
+            "Single Event Upset (SEU) cross-section or upset rate from radiation test data "
+            "(e.g. '1e-8 errors/bit/day in GEO orbit', 'σ = 4×10⁻¹⁴ cm²/bit @ 60 MeV·cm²/mg'). "
+            "Used for system-level error budget calculations."
+        ),
     )
     Summary: Optional[str] = Field(
         default=None,

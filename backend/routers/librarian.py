@@ -29,7 +29,7 @@ async def upload_datasheet(file: UploadFile = File(...)):
     extracted = extract_text_from_pdf(contents)
 
     try:
-        rows = extract_components_from_text(extracted["text"])
+        rows, ai_warnings = extract_components_from_text(extracted["text"])
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
@@ -46,6 +46,7 @@ async def upload_datasheet(file: UploadFile = File(...)):
         "page_count": extracted["page_count"],
         "extracted_text": extracted["text"],
         "rows": rows_dicts,
+        "warnings": ai_warnings,
     }
 
 

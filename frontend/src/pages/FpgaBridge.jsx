@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { FileSpreadsheet, GitCompare } from 'lucide-react'
+import { FileSpreadsheet, GitCompare, Download } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import DualCsvUpload from '../components/DualCsvUpload'
 import DeltaTable from '../components/DeltaTable'
@@ -8,6 +9,7 @@ import DeltaTable from '../components/DeltaTable'
 export default function FpgaBridge() {
   const [deltaResult, setDeltaResult] = useState(null)
   const [isLoading, setIsLoading]     = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [error, setError]             = useState(null)
 
   const handleCompare = async (baselineFile, newFile) => {
@@ -30,6 +32,30 @@ export default function FpgaBridge() {
       setError(e.message)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!deltaResult?.swapped_pins?.length) return
+    setIsExporting(true)
+
+    try {
+      const res = await fetch('/api/export-io-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ swapped_pins: deltaResult.swapped_pins }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Export failed')
+      }
+
+      const blob = await res.blob()
+      downloadBlob(blob, 'xpedition_pin_update.py')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -87,6 +113,19 @@ export default function FpgaBridge() {
           <Card>
             <CardContent className="pt-6">
               <DeltaTable data={deltaResult} />
+
+              {/* Export button — only shown when there are swaps */}
+              {deltaResult.total_swaps > 0 && (
+                <div className="mt-6 flex items-center gap-3 border-t border-border pt-6">
+                  <Button onClick={handleExport} disabled={isExporting}>
+                    <Download className="mr-2 h-4 w-4" />
+                    {isExporting ? 'Generating…' : 'Export Xpedition Update Script'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Downloads a Python script for Xpedition I/O Designer
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>
@@ -95,13 +134,3 @@ export default function FpgaBridge() {
   )
 }
 
-function SectionLabel({ icon, step, label }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className="text-primary">{icon}</span>
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Step {step} &mdash; {label}
-      </p>
-    </div>
-  )
-}

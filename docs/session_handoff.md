@@ -240,8 +240,9 @@ backend/
 │   └── schematic_drc.py          ← Netlist, DRCViolation, DRCReport, ViolationCategory
 │                                    (incl. SpaceCompliance), AIViolationBatch
 ├── routers/
-│   ├── librarian.py              ← /upload-datasheet, /push-to-databook, /library, /library/search,
-│   │                                /library/import-bom (BOM CSV → placeholder parts)
+│   ├── librarian.py              ← /upload-datasheet (extract only), /library/accept-parts,
+│   │                                /datasheets/{filename}, /push-to-databook, /library,
+│   │                                /library/search, /library/import-bom
 │   ├── fpga.py                   ← /compare-fpga-pins, /export-io-script
 │   ├── constraint.py             ← /extract-constraints, /export-ces-script
 │   ├── block_diagram.py          ← CRUD + /generate, /export-netlist
@@ -257,6 +258,7 @@ backend/
 │   ├── fpga_risk_assessor.py     ← AI SI/PI risk assessment for pin swaps
 │   ├── xpedition_io_export.py    ← generates .py script for Xpedition I/O Designer
 │   ├── part_library.py           ← JSON file store, variant consolidation, upsert_parts(), search()
+│   ├── datasheet_store.py        ← PDF file store with content-hash dedup (data/datasheets/)
 │   ├── constraint_extractor.py   ← AI SI/PI constraint extraction
 │   ├── xpedition_ces_export.py   ← generates .py script for CES
 │   ├── block_diagram_generator.py← AI diagram generation from parts or text
@@ -288,7 +290,7 @@ frontend/src/
 │   └── downloadBlob.js           ← shared export download utility
 ├── pages/
 │   ├── Home.jsx                  ← Home page — module overview cards, design flow pipeline
-│   ├── ComponentLibrarian.jsx    ← Step 1 — Part Library (hero) + PDF upload + BOM CSV import
+│   ├── ComponentLibrarian.jsx    ← Step 1 — Part Library + multi-PDF upload queue + accept/reject staging + BOM import
 │   ├── PartDetail.jsx            ← Part detail page (linked from library cards)
 │   ├── BlockDiagram.jsx          ← Step 2 — drag canvas, SVG lines, port wiring
 │   ├── StackupDesigner.jsx       ← Step 3 — layer editor, impedance calc, architecture analysis
@@ -467,6 +469,55 @@ When a datasheet covers multiple part number variants (e.g. TPS7H1111-SEP has ce
     {"Part_Number": "5962R2120302PYE", "Radiation_TID": "100 krad(Si)"}
   ]
 }
+```
+
+### Multi-PDF Upload Queue, Accept/Reject Staging, Datasheet PDF Storage
+
+Three interconnected features that change the Component Librarian upload workflow:
+
+**1. Multi-PDF Upload Queue**
+- `UploadZone.jsx` — new `multiple` prop; passes array of files to parent
+- `ComponentLibrarian.jsx` — queue state (`pending` → `running` → `done`/`error`); processes files sequentially via `processQueue()` with `processingRef` to prevent concurrent runs
+- Per-file progress shown inline: spinner while running, checkmark + part count when done, ✕ + error message on failure
+
+**2. Accept/Reject Staging**
+- `POST /api/upload-datasheet` — **no longer auto-saves** to the library; extracts and returns consolidated preview only
+- New `POST /api/library/accept-parts` endpoint — receives reviewed parts + source_file + datasheet_file; calls `upsert_parts()` to commit
+- `AcceptPartsRequest` Pydantic model: `parts: List[Dict]`, `source_file: str`, `datasheet_file: str | None`
+- Frontend: extracted parts appear in a **"Review Extracted Parts"** staging section between library grid and import tools
+- `StagedPartCard` component — three states:
+  - **Pending review** (amber border): shows primary PN, manufacturer, spec badges, variant list, warnings, Accept/Reject buttons
+  - **Accepted** (green border): one-line confirmation
+  - **Rejected** (grey, dimmed): one-line dismissal
+- "Clear completed" button removes accepted/rejected items from the staging list
+
+**3. Datasheet PDF Storage**
+- New `services/datasheet_store.py`:
+  - `save(pdf_bytes, original_filename)` → stores to `backend/data/datasheets/`, returns stored filename
+  - Content-hash deduplication (MD5 first 8 chars) — identical re-uploads reuse existing file; different content gets hash suffix
+  - `get_path(filename)` / `exists(filename)` — lookup helpers
+  - `_sanitize()` strips unsafe chars from filenames
+- New `GET /api/datasheets/{filename}` endpoint — serves stored PDFs via `FileResponse`
+- `part_library.upsert_parts()` — new optional `datasheet_file` param; stored in library entry
+- `PartDetail.jsx` — **"View Datasheet PDF"** link (opens in new tab via `/api/datasheets/{filename}`)
+- `PartDetail.jsx` — upload/re-upload button always visible (not gated on `hasDsData` anymore)
+- Library cards — green **"PDF on file"** indicator when `datasheet_file` is set
+- `data/datasheets/` added to `.gitignore`
+
+**Updated upload workflow:**
+1. Engineer drops one or more PDFs on the upload zone
+2. Each PDF is processed sequentially: saved to datasheet store → text extracted → AI extracts parts → consolidated preview returned
+3. Extracted parts appear in the staging area for review
+4. Engineer clicks **Accept** → parts + datasheet reference committed to library
+5. Or clicks **Reject** → extraction discarded (PDF still saved in case they want it later)
+6. Library refreshes automatically after each accept
+
+**File tree additions:**
+```
+backend/services/
+│   └── datasheet_store.py      ← PDF file store with dedup
+backend/data/
+│   └── datasheets/             ← stored PDF files (gitignored)
 ```
 
 ---

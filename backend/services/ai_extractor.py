@@ -49,7 +49,8 @@ Rules:
 - Part_Number and Manufacturer are REQUIRED. Skip any component missing either.
 - Include units in values (e.g. "3.3 V", "100 krad(Si)", "-55 to +125 C", "35 C/W").
 - Set unknown fields to null. Do NOT guess.
-- If a datasheet covers MULTIPLE part number variants, create one entry per variant.
+- If a datasheet covers MULTIPLE part number variants (different packages/ordering numbers), create one entry per variant.
+- Put the BASE / GENERIC part number FIRST in the list (e.g. "TPS7H1111-SEP" before "5962R2120301VXC" or "TPS7H1111MPWPTSEP"). The base part is usually the shortest commercial name shown on the datasheet title page.
 - Return ONLY the JSON object. No markdown, no commentary."""
 
 

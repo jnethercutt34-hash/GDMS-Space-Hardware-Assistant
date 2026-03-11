@@ -37,6 +37,12 @@ def _save(parts: List[Dict[str, Any]]) -> None:
 _MILITARY_PN = re.compile(r"^5962[A-Z]?\d", re.IGNORECASE)
 # Engineering samples / evaluation modules
 _SAMPLE_PN = re.compile(r"(HFT|/EM|EVM|DBV|DBG)\b", re.IGNORECASE)
+# Common ordering suffixes that make a PN longer than the base part
+# e.g. TPS7H1111MPWPTSEP → base is TPS7H1111
+_ORDERING_SUFFIX = re.compile(
+    r"(MPWPT|MPWP|MDGN|MDCK|MRGN|MRGH|MPSP|SEP|QFN|RH|SP|EP|EM|HFT)$",
+    re.IGNORECASE,
+)
 
 # Fields that can differ between variants
 _VARIANT_FIELDS = [
@@ -45,13 +51,28 @@ _VARIANT_FIELDS = [
 ]
 
 
-def _pick_primary(parts: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+def _base_pn(pn: str) -> str:
+    """Strip ordering/suffix codes to get the base part family name."""
+    # Repeatedly strip known suffixes
+    base = pn.strip()
+    for _ in range(3):
+        m = _ORDERING_SUFFIX.search(base)
+        if m:
+            base = base[:m.start()]
+        else:
+            break
+    # Strip trailing hyphens/dashes
+    return base.rstrip("-/ ")
+
+
+def _pick_primary(parts: List[Dict[str, Any]], source_file: str = "") -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Choose the best primary part number from a list of datasheet variants.
 
     Heuristic priority:
       1. Non-military, non-sample part numbers first
-      2. Prefer shorter part numbers (more generic / base part)
-      3. Fall back to the first item if all look equally specific
+      2. Part number closest to the base family name (shortest after suffix stripping)
+      3. Prefer shorter part numbers (more generic / base part)
+      4. Fall back to the first item if all look equally specific
     """
     if len(parts) <= 1:
         return parts[0], []
@@ -61,10 +82,13 @@ def _pick_primary(parts: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], List[Dic
         pn = p.get("Part_Number", "")
         score = 0
         if _MILITARY_PN.match(pn):
-            score += 100  # push military PNs down
+            score += 1000  # push military PNs way down
         if _SAMPLE_PN.search(pn):
-            score += 50   # push samples down
-        score += len(pn)  # prefer shorter names
+            score += 500   # push samples down
+        # Prefer PNs whose base name is shorter (closer to the family name)
+        base = _base_pn(pn)
+        score += len(base) * 10  # weight base length heavily
+        score += len(pn)         # tiebreak on full length
         scored.append((score, i, p))
     scored.sort(key=lambda x: (x[0], x[1]))
 
@@ -91,7 +115,7 @@ def _build_variant_entry(variant: Dict[str, Any], primary: Dict[str, Any]) -> Di
     return entry
 
 
-def consolidate_variants(parts: List[Dict[str, Any]]) -> Dict[str, Any]:
+def consolidate_variants(parts: List[Dict[str, Any]], source_file: str = "") -> Dict[str, Any]:
     """Consolidate a list of extracted parts into a single entry with variants.
 
     Returns the consolidated entry dict ready for library storage.
@@ -99,7 +123,7 @@ def consolidate_variants(parts: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not parts:
         return {}
 
-    primary, variants = _pick_primary(parts)
+    primary, variants = _pick_primary(parts, source_file=source_file)
     entry = dict(primary)
 
     if variants:

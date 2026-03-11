@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "Part_Number": "TPS7H1111-SEP",
+    "Manufacturer": "Texas Instruments",
+    "Value": null,
+    "Tolerance": null,
+    "Voltage_Rating": "0.85 V to 7 V",
+    "Package_Type": "28-pin plastic",
+    "Pin_Count": "28",
+    "Operating_Temperature_Range": "-55 to +125 C",
+    "Thermal_Resistance": null,
+    "Radiation_TID": "50 krad(Si)",
+    "Radiation_SEL_Threshold": "75 MeV-cm2/mg",
+    "Radiation_SEU_Rate": null,
+    "Summary": "Ultra-low noise, high PSRR, low dropout linear regulator (LDO) optimized for powering radio-frequency (RF) devices in a space environment.",
+    "source_file": "tps7h1111-sep.pdf",
+    "added_at": "2026-03-11T22:14:20.913445+00:00",
+    "needs_datasheet": false,
+    "variants": [
+      {
+        "Part_Number": "TPS7H1111MPWPTSEP",
+        "Summary": "Commercial plastic ordering number"
+      },
+      {
+        "Part_Number": "5962R2120301VXC",
+        "Package_Type": "14-pin ceramic",
+        "Pin_Count": "14",
+        "Radiation_TID": "100 krad(Si)",
+        "Summary": "QML Class V ceramic package"
+      },
+      {
+        "Part_Number": "5962R2120302PYE",
+        "Radiation_TID": "100 krad(Si)",
+        "Summary": "QML Class V plastic package"
+      }
+    ]
+  }
+]

@@ -55,6 +55,18 @@ def get_all() -> List[Dict[str, Any]]:
     return _load()
 
 
+def patch_part(part_number: str, updates: Dict[str, Any]) -> Dict[str, Any] | None:
+    """Update specific fields on a part by Part_Number. Returns updated part or None."""
+    with _lock:
+        parts = _load()
+        for i, p in enumerate(parts):
+            if p.get("Part_Number") == part_number:
+                parts[i] = {**p, **updates}
+                _save(parts)
+                return parts[i]
+    return None
+
+
 def search(query: str) -> List[Dict[str, Any]]:
     """Case-insensitive substring search across all text fields."""
     q = query.lower().strip()

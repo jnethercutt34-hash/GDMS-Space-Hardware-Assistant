@@ -96,6 +96,13 @@ export default function ComponentLibrarian() {
     }
   }
 
+  // Update a part's program in local state after PATCH succeeds
+  const handleProgramChange = (partNumber, program) => {
+    setLibraryParts(prev =>
+      prev.map(p => p.Part_Number === partNumber ? { ...p, Program: program } : p)
+    )
+  }
+
   const hasRows = Boolean(extractedData?.rows?.length)
 
   return (
@@ -103,7 +110,7 @@ export default function ComponentLibrarian() {
       {/* Hero */}
       <section className="mb-14">
         <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
-          Phase 1 · Component Librarian
+          Component Librarian
         </Badge>
         <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           Component Datasheet Extractor
@@ -186,7 +193,7 @@ export default function ComponentLibrarian() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
-            placeholder="Search by part number, manufacturer, use case, package…"
+            placeholder="Search by part number, manufacturer, program, package…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-md border border-border bg-secondary/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
@@ -208,7 +215,7 @@ export default function ComponentLibrarian() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {libraryParts.map((part) => (
-              <PartCard key={part.Part_Number} part={part} />
+              <PartCard key={part.Part_Number} part={part} onProgramChange={handleProgramChange} />
             ))}
           </div>
         )}
@@ -217,7 +224,11 @@ export default function ComponentLibrarian() {
   )
 }
 
-function PartCard({ part }) {
+function PartCard({ part, onProgramChange }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft]     = useState(part.Program ?? '')
+  const [saving, setSaving]   = useState(false)
+
   const specs = [
     { label: 'Package',   value: part.Package_Type    ?? '—' },
     { label: 'Pins',      value: part.Pin_Count        ?? '—' },
@@ -226,6 +237,23 @@ function PartCard({ part }) {
     { label: 'Tolerance', value: part.Tolerance        ?? '—' },
     { label: 'θja',       value: part.Thermal_Resistance ?? '—' },
   ].filter((s) => s.value !== '—')
+
+  const handleSaveProgram = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/library/${encodeURIComponent(part.Part_Number)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Program: draft.trim() || null }),
+      })
+      if (res.ok) {
+        onProgramChange?.(part.Part_Number, draft.trim() || null)
+        setEditing(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <Card className="flex flex-col">
@@ -255,6 +283,45 @@ function PartCard({ part }) {
           </div>
         </CardContent>
       )}
+
+      {/* Program assignment */}
+      <div className="px-6 pb-3 pt-1">
+        {editing ? (
+          <div className="flex gap-1.5 items-center">
+            <input
+              className="flex-1 rounded-md border border-border bg-secondary px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Program name…"
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSaveProgram()
+                if (e.key === 'Escape') { setEditing(false); setDraft(part.Program ?? '') }
+              }}
+              autoFocus
+              disabled={saving}
+            />
+            <Button size="sm" className="h-6 px-2 text-[10px]" onClick={handleSaveProgram} disabled={saving}>
+              {saving ? '…' : 'Save'}
+            </Button>
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => { setEditing(false); setDraft(part.Program ?? '') }}
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button
+            className="w-full text-left group"
+            onClick={() => setEditing(true)}
+          >
+            <p className="text-xs text-muted-foreground/60 uppercase tracking-widest leading-none mb-0.5">Program</p>
+            <p className="text-xs text-foreground group-hover:text-primary transition-colors">
+              {part.Program || <span className="text-muted-foreground/40 italic">Click to assign…</span>}
+            </p>
+          </button>
+        )}
+      </div>
 
       {part.source_file && (
         <div className="px-6 pb-4 pt-0">

@@ -91,6 +91,23 @@ def get_library():
 
 
 # ---------------------------------------------------------------------------
+# PATCH /api/library/{part_number}
+# ---------------------------------------------------------------------------
+
+class PatchPartRequest(BaseModel):
+    Program: str | None = None
+
+
+@router.patch("/library/{part_number}")
+def patch_library_part(part_number: str, payload: PatchPartRequest):
+    """Update mutable fields on a library part (e.g. Program assignment)."""
+    updated = part_library.patch_part(part_number, payload.model_dump(exclude_unset=True))
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Part '{part_number}' not found in library.")
+    return updated
+
+
+# ---------------------------------------------------------------------------
 # GET /api/library/search
 # ---------------------------------------------------------------------------
 

@@ -7,6 +7,7 @@ import BlockDiagram from './pages/BlockDiagram'
 import ComAnalysis from './pages/ComAnalysis'
 import BomAnalyzer from './pages/BomAnalyzer'
 import SchematicDrc from './pages/SchematicDrc'
+import PartDetail from './pages/PartDetail'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
           <Routes>
             <Route path="/"               element={<ComponentLibrarian />} />
+            <Route path="/part/:partNumber" element={<PartDetail />} />
             <Route path="/fpga"           element={<FpgaBridge />} />
             <Route path="/constraints"    element={<ConstraintEditor />} />
             <Route path="/block-diagram"  element={<BlockDiagram />} />

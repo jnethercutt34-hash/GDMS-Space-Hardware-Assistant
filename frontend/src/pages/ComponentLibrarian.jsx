@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Upload, Cpu, CheckCircle, Search, Library, Package } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -225,6 +226,7 @@ export default function ComponentLibrarian() {
 }
 
 function PartCard({ part, onProgramChange }) {
+  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft]     = useState(part.Program ?? '')
   const [saving, setSaving]   = useState(false)
@@ -256,7 +258,10 @@ function PartCard({ part, onProgramChange }) {
   }
 
   return (
-    <Card className="flex flex-col">
+    <Card
+      className="flex flex-col cursor-pointer hover:border-primary/40 transition-colors"
+      onClick={() => navigate(`/part/${encodeURIComponent(part.Part_Number)}`)}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="font-heading text-sm leading-snug">{part.Part_Number}</CardTitle>
@@ -285,7 +290,7 @@ function PartCard({ part, onProgramChange }) {
       )}
 
       {/* Program assignment */}
-      <div className="px-6 pb-3 pt-1">
+      <div className="px-6 pb-3 pt-1" onClick={e => e.stopPropagation()}>
         {editing ? (
           <div className="flex gap-1.5 items-center">
             <input

@@ -55,6 +55,14 @@ def get_all() -> List[Dict[str, Any]]:
     return _load()
 
 
+def get_by_part_number(part_number: str) -> Dict[str, Any] | None:
+    """Look up a single part by Part_Number (exact match)."""
+    for p in _load():
+        if p.get("Part_Number") == part_number:
+            return p
+    return None
+
+
 def patch_part(part_number: str, updates: Dict[str, Any]) -> Dict[str, Any] | None:
     """Update specific fields on a part by Part_Number. Returns updated part or None."""
     with _lock:

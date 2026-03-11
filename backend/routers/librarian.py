@@ -91,6 +91,29 @@ def get_library():
 
 
 # ---------------------------------------------------------------------------
+# GET /api/library/search  (must be before {part_number} to avoid conflict)
+# ---------------------------------------------------------------------------
+
+@router.get("/library/search")
+def search_library(q: str = Query(default="", description="Search query")):
+    """Search the library by part number, manufacturer, summary, or any field."""
+    return {"parts": part_library.search(q)}
+
+
+# ---------------------------------------------------------------------------
+# GET /api/library/{part_number}
+# ---------------------------------------------------------------------------
+
+@router.get("/library/{part_number}")
+def get_library_part(part_number: str):
+    """Return a single part by part number."""
+    part = part_library.get_by_part_number(part_number)
+    if part is None:
+        raise HTTPException(status_code=404, detail=f"Part '{part_number}' not found in library.")
+    return part
+
+
+# ---------------------------------------------------------------------------
 # PATCH /api/library/{part_number}
 # ---------------------------------------------------------------------------
 
@@ -105,13 +128,3 @@ def patch_library_part(part_number: str, payload: PatchPartRequest):
     if updated is None:
         raise HTTPException(status_code=404, detail=f"Part '{part_number}' not found in library.")
     return updated
-
-
-# ---------------------------------------------------------------------------
-# GET /api/library/search
-# ---------------------------------------------------------------------------
-
-@router.get("/library/search")
-def search_library(q: str = Query(default="", description="Search query")):
-    """Search the library by part number, manufacturer, summary, or any field."""
-    return {"parts": part_library.search(q)}

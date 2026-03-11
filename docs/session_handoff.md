@@ -256,7 +256,7 @@ backend/
 │   ├── csv_delta.py              ← pandas inner-join delta engine
 │   ├── fpga_risk_assessor.py     ← AI SI/PI risk assessment for pin swaps
 │   ├── xpedition_io_export.py    ← generates .py script for Xpedition I/O Designer
-│   ├── part_library.py           ← JSON file store, upsert_parts(), upsert_placeholder_parts(), search()
+│   ├── part_library.py           ← JSON file store, variant consolidation, upsert_parts(), search()
 │   ├── constraint_extractor.py   ← AI SI/PI constraint extraction
 │   ├── xpedition_ces_export.py   ← generates .py script for CES
 │   ├── block_diagram_generator.py← AI diagram generation from parts or text
@@ -429,6 +429,45 @@ Restructured `ComponentLibrarian.jsx` to make the Part Library the central focus
 - Added `Plus` icon for "Add Parts" section
 - Empty library message now directs engineers to import tools below
 - PDF upload and BOM import are equal-weight side-by-side cards instead of stacked full-width sections
+
+### Datasheet Variant Consolidation — One Datasheet = One Library Entry
+When a datasheet covers multiple part number variants (e.g. TPS7H1111-SEP has ceramic, plastic, and commercial ordering numbers), they are now consolidated into a **single library entry** with a `variants` list instead of creating separate entries for each.
+
+**Backend (`part_library.py`):**
+- `consolidate_variants(parts)` — picks the best primary PN and stores the rest as variants
+- `_pick_primary()` — scoring heuristic:
+  - Military/SMD PNs (`5962...`) get +1000 penalty (always variants)
+  - Engineering samples (`HFT`, `/EM`) get +500 penalty
+  - `_base_pn()` strips ordering suffixes (`MPWPT`, `SEP`, `SP`, `RH`, etc.) via `_ORDERING_SUFFIX` regex; shorter base = better primary
+  - Tiebreak on full PN length, then original order
+- `_build_variant_entry()` — stores only fields that differ from primary (Package_Type, Pin_Count, Radiation_TID, Thermal_Resistance, Summary)
+- `upsert_parts()` — calls `consolidate_variants()` before saving; also removes old standalone variant entries from the library on re-upload (migration cleanup)
+- `search()` — includes variant part numbers in search haystack so searching `5962R2120301VXC` finds the parent TPS7H1111-SEP entry
+
+**AI prompt (`ai_extractor.py`):**
+- Updated system prompt to instruct LLM to return the base/generic part number FIRST in the components list (e.g. "TPS7H1111-SEP" before "5962R2120301VXC")
+
+**Frontend (`PartDetail.jsx`):**
+- New **"Part Number Variants"** card at top of right column (Layers icon)
+- Each variant shown as a bordered row with part number + badges for differing fields (Package, Pin Count, TID, θJA)
+- Variants with different Summary text show it inline
+- Count label: "N alternate ordering(s)"
+
+**Frontend (`ComponentLibrarian.jsx`):**
+- Library cards show **"+N variants"** indicator with Package icon when entry has variants
+
+**Data format (`library.json`):**
+```json
+{
+  "Part_Number": "TPS7H1111-SEP",
+  "Manufacturer": "Texas Instruments",
+  "variants": [
+    {"Part_Number": "TPS7H1111MPWPTSEP", "Summary": "Commercial plastic ordering number"},
+    {"Part_Number": "5962R2120301VXC", "Package_Type": "14-pin ceramic", "Pin_Count": "14", "Radiation_TID": "100 krad(Si)"},
+    {"Part_Number": "5962R2120302PYE", "Radiation_TID": "100 krad(Si)"}
+  ]
+}
+```
 
 ---
 

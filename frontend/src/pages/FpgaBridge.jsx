@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import DualCsvUpload from '../components/DualCsvUpload'
 import DeltaTable from '../components/DeltaTable'
+import SectionLabel from '../components/SectionLabel'
 
 export default function FpgaBridge() {
   const [deltaResult, setDeltaResult] = useState(null)

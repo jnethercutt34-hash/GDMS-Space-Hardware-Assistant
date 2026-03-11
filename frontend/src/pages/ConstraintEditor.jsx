@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import UploadZone from '../components/UploadZone'
 import ConstraintTable from '../components/ConstraintTable'
+import SectionLabel from '../components/SectionLabel'
 
 export default function ConstraintEditor() {
   const [result, setResult]         = useState(null)

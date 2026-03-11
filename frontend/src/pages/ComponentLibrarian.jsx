@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Upload, Cpu, CheckCircle, Search, Library, Package,
-  FileSpreadsheet, AlertTriangle, FileText,
+  FileSpreadsheet, AlertTriangle, Plus,
 } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -155,88 +155,152 @@ export default function ComponentLibrarian() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="mb-14">
+      {/* ================================================================
+          HERO — Component Library
+          ================================================================ */}
+      <section className="mb-10">
         <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
           Component Librarian
         </Badge>
         <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          Component Datasheet Extractor
+          Component Library
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-          Upload a PDF datasheet for AI parameter extraction, or import an Xpedition BOM CSV to
-          bulk-add ICs to the library. Every part is saved to the searchable library below.
+          Browse and search the local parts library. Use the import tools below to add new
+          components from PDF datasheets or Xpedition BOM exports.
         </p>
       </section>
 
-      {/* Step 1 — Upload */}
+      {/* ================================================================
+          PART LIBRARY — search + grid (the main feature)
+          ================================================================ */}
       <section className="mb-14">
-        <SectionLabel icon={<Upload className="h-4 w-4" />} step="1" label="Upload Component Datasheet (PDF)" />
-        <Card>
-          <CardContent className="pt-6">
-            <UploadZone onUpload={handleUpload} isLoading={isLoading} />
-            {error && (
-              <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-                <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
-                  Upload Error
-                </p>
-                <p className="text-xs text-muted-foreground">{error}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between mb-3">
+          <SectionLabel icon={<Library className="h-4 w-4" />} step="" label="Part Library" />
+          <span className="text-xs text-muted-foreground">
+            {libraryParts.length} part{libraryParts.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* Search bar */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by part number, manufacturer, program, package…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-md border border-border bg-secondary/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
+          />
+        </div>
+
+        {/* Results */}
+        {isSearching ? (
+          <p className="text-sm text-muted-foreground">Searching…</p>
+        ) : libraryParts.length === 0 ? (
+          <div className="rounded-lg border border-border bg-secondary/10 px-6 py-12 text-center">
+            <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">
+              {searchQuery.trim()
+                ? 'No parts match your search.'
+                : 'No parts in the library yet — use the import tools below to add components.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {libraryParts.map((part) => (
+              <PartCard key={part.Part_Number} part={part} onProgramChange={handleProgramChange} />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* BOM Import */}
+      {/* ================================================================
+          ADD PARTS — PDF upload + BOM import side by side
+          ================================================================ */}
       <section className="mb-14">
-        <SectionLabel icon={<FileSpreadsheet className="h-4 w-4" />} step="" label="Import from BOM CSV" />
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground mb-3">
-              Upload an Xpedition BOM CSV to bulk-add ICs and active devices to the library.
-              Passives (R, C, L, ferrites, test points) are automatically skipped.
-              Parts already in the library are left untouched.
-            </p>
-            <div
-              onDragOver={(e) => { e.preventDefault(); setBomDragOver(true) }}
-              onDragLeave={() => setBomDragOver(false)}
-              onDrop={handleBomDrop}
-              className={[
-                'border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer',
-                bomDragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
-              ].join(' ')}
-              onClick={() => document.getElementById('bom-import-input').click()}
-            >
-              <input
-                id="bom-import-input"
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={handleBomFileInput}
-              />
-              <FileSpreadsheet className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-foreground font-medium">
-                {isBomLoading ? 'Importing BOM…' : 'Drop a BOM CSV here or click to browse'}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Supports Xpedition, Altium, OrCAD, and generic CSV formats
-              </p>
-            </div>
-            {isBomLoading && (
-              <p className="text-xs text-muted-foreground text-center mt-3 animate-pulse">
-                Parsing BOM and filtering ICs…
-              </p>
-            )}
-            {bomError && (
-              <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-                <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
-                  Import Error
-                </p>
-                <p className="text-xs text-muted-foreground">{bomError}</p>
+        <SectionLabel icon={<Plus className="h-4 w-4" />} step="" label="Add Parts to Library" />
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* PDF Datasheet Upload */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Upload className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-heading">Upload PDF Datasheet</CardTitle>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                Extract component parameters from a PDF datasheet using AI. Extracted
+                parts are automatically added to the library.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <UploadZone onUpload={handleUpload} isLoading={isLoading} />
+              {error && (
+                <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+                  <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
+                    Upload Error
+                  </p>
+                  <p className="text-xs text-muted-foreground">{error}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* BOM CSV Import */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-heading">Import from BOM CSV</CardTitle>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                Bulk-add ICs and active devices from an Xpedition BOM export.
+                Passives are automatically skipped.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setBomDragOver(true) }}
+                onDragLeave={() => setBomDragOver(false)}
+                onDrop={handleBomDrop}
+                className={[
+                  'border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer',
+                  bomDragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
+                ].join(' ')}
+                onClick={() => document.getElementById('bom-import-input').click()}
+              >
+                <input
+                  id="bom-import-input"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleBomFileInput}
+                />
+                <FileSpreadsheet className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-foreground font-medium">
+                  {isBomLoading ? 'Importing BOM…' : 'Drop a BOM CSV here or click to browse'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supports Xpedition, Altium, OrCAD, and generic CSV formats
+                </p>
+              </div>
+              {isBomLoading && (
+                <p className="text-xs text-muted-foreground text-center mt-3 animate-pulse">
+                  Parsing BOM and filtering ICs…
+                </p>
+              )}
+              {bomError && (
+                <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+                  <p className="text-xs text-destructive font-semibold uppercase tracking-widest mb-0.5">
+                    Import Error
+                  </p>
+                  <p className="text-xs text-muted-foreground">{bomError}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* BOM Import Results */}
         {bomResult && (
@@ -283,11 +347,13 @@ export default function ComponentLibrarian() {
         )}
       </section>
 
-      {/* Step 2 — Extracted Parameters */}
+      {/* ================================================================
+          EXTRACTION RESULTS — only shown after a PDF upload
+          ================================================================ */}
       {extractedData && (
         <section className="mb-14">
           <div className="flex items-center justify-between mb-3">
-            <SectionLabel icon={<Cpu className="h-4 w-4" />} step="2" label="Extracted Parameters" />
+            <SectionLabel icon={<Cpu className="h-4 w-4" />} step="" label="Extracted Parameters" />
             <Button
               onClick={handlePushToXpedition}
               disabled={!hasRows || isPushing}
@@ -311,10 +377,10 @@ export default function ComponentLibrarian() {
         </section>
       )}
 
-      {/* Step 3 — Push Results */}
+      {/* Push Results */}
       {pushResult && (
         <section className="mb-14">
-          <SectionLabel icon={<CheckCircle className="h-4 w-4" />} step="3" label="Xpedition Databook Push Results" />
+          <SectionLabel icon={<CheckCircle className="h-4 w-4" />} step="" label="Xpedition Databook Push Results" />
           <Card>
             <CardContent className="pt-6">
               <PushResultPanel results={pushResult.results} />
@@ -322,48 +388,6 @@ export default function ComponentLibrarian() {
           </Card>
         </section>
       )}
-
-      {/* Part Library */}
-      <section className="mb-14">
-        <div className="flex items-center justify-between mb-3">
-          <SectionLabel icon={<Library className="h-4 w-4" />} step="" label="Part Library" />
-          <span className="text-xs text-muted-foreground">
-            {libraryParts.length} part{libraryParts.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        {/* Search bar */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by part number, manufacturer, program, package…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-md border border-border bg-secondary/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
-          />
-        </div>
-
-        {/* Results */}
-        {isSearching ? (
-          <p className="text-sm text-muted-foreground">Searching…</p>
-        ) : libraryParts.length === 0 ? (
-          <div className="rounded-lg border border-border bg-secondary/10 px-6 py-12 text-center">
-            <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {searchQuery.trim()
-                ? 'No parts match your search.'
-                : 'No parts in the library yet — upload a datasheet to get started.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {libraryParts.map((part) => (
-              <PartCard key={part.Part_Number} part={part} onProgramChange={handleProgramChange} />
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   )
 }

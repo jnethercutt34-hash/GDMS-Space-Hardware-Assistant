@@ -45,7 +45,7 @@
     "Radiation_SEU_Rate": null,
     "Summary": "Ultra-low noise, high PSRR, low dropout linear regulator (LDO) optimized for powering radio-frequency (RF) devices in a space environment.",
     "source_file": "tps7h1111-sep.pdf",
-    "added_at": "2026-03-11T19:59:26.368409+00:00",
+    "added_at": "2026-03-11T21:57:33.399222+00:00",
     "needs_datasheet": false
   },
   {
@@ -63,7 +63,7 @@
     "Radiation_SEU_Rate": null,
     "Summary": "Ultra-low noise, high PSRR, low dropout linear regulator (LDO) optimized for powering radio-frequency (RF) devices in a space environment.",
     "source_file": "tps7h1111-sep.pdf",
-    "added_at": "2026-03-11T19:59:26.368409+00:00",
+    "added_at": "2026-03-11T21:57:33.399222+00:00",
     "needs_datasheet": false
   },
   {
@@ -81,7 +81,7 @@
     "Radiation_SEU_Rate": null,
     "Summary": "Ultra-low noise, high PSRR, low dropout linear regulator (LDO) optimized for powering radio-frequency (RF) devices in a space environment.",
     "source_file": "tps7h1111-sep.pdf",
-    "added_at": "2026-03-11T19:59:26.368409+00:00",
+    "added_at": "2026-03-11T21:57:33.399222+00:00",
     "needs_datasheet": false
   }
 ]

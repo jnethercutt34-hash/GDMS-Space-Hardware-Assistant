@@ -1,5 +1,5 @@
 # Session Handoff — GDMS Space Hardware Assistant
-**Last updated: 2026-03-11**
+**Last updated: 2026-03-11 (Session 3)**
 
 ---
 
@@ -8,7 +8,7 @@
 | Step | Description | Status |
 |---|---|---|
 | 1 | React UI — PDF upload zone, DataTable, GDMS branding | ✅ |
-| 2 | FastAPI — `POST /api/upload-datasheet`, pdfplumber extraction | ✅ |
+| 2 | FastAPI — `POST /api/upload-datasheet`, PyMuPDF extraction (replaced pdfplumber) | ✅ |
 | 3 | OpenAI-compatible AI extraction, Pydantic `ComponentData` schema | ✅ |
 | 4 | Xpedition COM stub — `POST /api/push-to-databook`, `PushResultPanel` | ✅ |
 | 5 | Part Library — searchable card grid, JSON persistence, auto-save on upload | ✅ |
@@ -250,7 +250,7 @@ backend/
 │   └── drc.py                    ← /drc/analyze, /drc/upload-netlist, /drc/export
 ├── services/
 │   ├── ai_client.py              ← shared get_client() / get_model() factory
-│   ├── pdf_extractor.py          ← pdfplumber wrapper
+│   ├── pdf_extractor.py          ← PyMuPDF (fitz) wrapper (replaced pdfplumber)
 │   ├── ai_extractor.py           ← extraction prompt (incl. radiation field guidance)
 │   ├── xpedition_stub.py         ← win32com COM stub (lazy import)
 │   ├── csv_delta.py              ← pandas inner-join delta engine
@@ -288,7 +288,7 @@ frontend/src/
 │   └── downloadBlob.js           ← shared export download utility
 ├── pages/
 │   ├── Home.jsx                  ← Home page — module overview cards, design flow pipeline
-│   ├── ComponentLibrarian.jsx    ← Step 1 — PDF upload + BOM CSV import + Part Library
+│   ├── ComponentLibrarian.jsx    ← Step 1 — Part Library (hero) + PDF upload + BOM CSV import
 │   ├── PartDetail.jsx            ← Part detail page (linked from library cards)
 │   ├── BlockDiagram.jsx          ← Step 2 — drag canvas, SVG lines, port wiring
 │   ├── StackupDesigner.jsx       ← Step 3 — layer editor, impedance calc, architecture analysis
@@ -394,6 +394,41 @@ Added ability to import an Xpedition BOM CSV to bulk-add ICs to the part library
 3. ICs are auto-added to the library as placeholders
 4. Engineer clicks into each part → uploads its PDF datasheet → AI extracts full parameters
 5. `needs_datasheet` flag clears automatically when datasheet is processed
+
+---
+
+## Session 2026-03-11 Changes (Session 3)
+
+### PDF Extraction Fix — pdfplumber → PyMuPDF
+- `pdf_extractor.py` — replaced `pdfplumber` with `PyMuPDF` (`fitz`)
+  - pdfplumber was hanging indefinitely on complex datasheets (e.g. TI TPS7H1111-SEP with vector graphics)
+  - PyMuPDF handles these reliably and is significantly faster
+- `requirements.txt` — swapped `pdfplumber==0.11.4` for `PyMuPDF>=1.24.0`
+- `ai_extractor.py` — enhanced with robust salvage logic:
+  - Field alias mapping (`_FIELD_ALIASES`) normalizes non-standard LLM key names to canonical `ComponentData` fields
+  - `_enrich_from_text()` fills missing fields via regex on original PDF text (pin count, temp range, TID, SEL, voltage, θJA)
+  - `_find_components_in_parsed()` handles flat dicts, bare lists, and non-standard LLM responses
+  - Works with small/local LLMs (e.g. llama3.1:8b) that don't follow JSON schema precisely
+
+### Component Librarian UI Restructure — Library-First Layout
+Restructured `ComponentLibrarian.jsx` to make the Part Library the central focus:
+
+**Old layout:** Upload PDF → BOM Import → Extracted Parameters → Push Results → Part Library (bottom)
+
+**New layout:**
+1. **Hero** — renamed from "Component Datasheet Extractor" to "Component Library"
+2. **Part Library** — search bar + part card grid, front and center at top of page
+3. **Add Parts to Library** — PDF upload and BOM import side by side in a 2-column card grid
+4. **Extraction Results** — only shown after a PDF upload (below import tools)
+5. **Push Results** — only shown after pushing to Xpedition
+
+**Rationale:** The library is the tool engineers use daily to search and browse parts. The central Xpedition library is the canonical source; this local library serves as a staging area until parts are added centrally. PDF/BOM import are the mechanisms to populate it, but not the primary interaction.
+
+**Other UI changes:**
+- Removed numbered step labels (no longer a wizard flow)
+- Added `Plus` icon for "Add Parts" section
+- Empty library message now directs engineers to import tools below
+- PDF upload and BOM import are equal-weight side-by-side cards instead of stacked full-width sections
 
 ---
 

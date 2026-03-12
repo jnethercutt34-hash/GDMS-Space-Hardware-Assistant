@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Upload, Cpu, CheckCircle, Search, Library, Package,
   FileSpreadsheet, AlertTriangle, Plus, X, Check, Loader2, FileText,
+  ChevronDown,
 } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -15,6 +16,46 @@ const Q_PENDING  = 'pending'
 const Q_RUNNING  = 'running'
 const Q_DONE     = 'done'
 const Q_ERROR    = 'error'
+
+// ─── Dropdown option lists ────────────────────────────────────────────────────
+const PROGRAM_OPTIONS = [
+  'Program A',
+  'Program B',
+  'Program C',
+  'Program D',
+  'Program E',
+  'Program F',
+]
+
+const PART_TYPE_OPTIONS = [
+  'Power',
+  'FPGA',
+  'Processor',
+  'DDR4',
+  'DDR5',
+  'ADC',
+  'DAC',
+  'SerDes',
+  'Transceiver',
+  'Oscillator / Clock',
+  'Voltage Regulator',
+  'Op-Amp',
+  'MOSFET',
+  'Diode',
+  'Connector',
+  'Memory (Flash)',
+  'Memory (SRAM)',
+  'Memory (EEPROM)',
+  'Gate Driver',
+  'Interface (LVDS)',
+  'Interface (SpaceWire)',
+  'Interface (RS-422)',
+  'Multiplexer',
+  'Sensor',
+  'Filter',
+  'Transformer',
+  'Other',
+]
 
 export default function ComponentLibrarian() {
   // ── Library state ────────────────────────────────────────────────────────
@@ -158,12 +199,18 @@ export default function ComponentLibrarian() {
     setStaged(prev => prev.filter(s => s.accepted === null))
   }
 
-  // ── Program change (inline on card) ──────────────────────────────────────
-  const handleProgramChange = (partNumber, program) => {
+  // ── Filter state ──────────────────────────────────────────────────────────
+  const [filterProgram, setFilterProgram]   = useState('')
+  const [filterPartType, setFilterPartType] = useState('')
+
+  // ── Field change (inline on card) ──────────────────────────────────────
+  const handleFieldChange = (partNumber, field, value) => {
     setLibraryParts(prev =>
-      prev.map(p => p.Part_Number === partNumber ? { ...p, Program: program } : p)
+      prev.map(p => p.Part_Number === partNumber ? { ...p, [field]: value } : p)
     )
   }
+  // Back-compat alias
+  const handleProgramChange = (partNumber, program) => handleFieldChange(partNumber, 'Program', program)
 
   // ── BOM import ───────────────────────────────────────────────────────────
   const handleBomImport = async (file) => {
@@ -231,35 +278,85 @@ export default function ComponentLibrarian() {
           </span>
         </div>
 
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by part number, manufacturer, program, package…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-md border border-border bg-secondary/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
-          />
+        <div className="flex flex-col gap-3 mb-6">
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by part number, manufacturer, program, package…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-md border border-border bg-secondary/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
+            />
+          </div>
+
+          {/* Filter dropdowns */}
+          <div className="flex gap-3">
+            <div className="relative">
+              <select
+                value={filterProgram}
+                onChange={(e) => setFilterProgram(e.target.value)}
+                className="appearance-none rounded-md border border-border bg-secondary/30 pl-3 pr-8 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors cursor-pointer"
+              >
+                <option value="">All Programs</option>
+                {PROGRAM_OPTIONS.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <select
+                value={filterPartType}
+                onChange={(e) => setFilterPartType(e.target.value)}
+                className="appearance-none rounded-md border border-border bg-secondary/30 pl-3 pr-8 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors cursor-pointer"
+              >
+                <option value="">All Part Types</option>
+                {PART_TYPE_OPTIONS.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            </div>
+
+            {(filterProgram || filterPartType) && (
+              <button
+                onClick={() => { setFilterProgram(''); setFilterPartType('') }}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
-        {isSearching ? (
-          <p className="text-sm text-muted-foreground">Searching…</p>
-        ) : libraryParts.length === 0 ? (
-          <div className="rounded-lg border border-border bg-secondary/10 px-6 py-12 text-center">
-            <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {searchQuery.trim()
-                ? 'No parts match your search.'
-                : 'No parts in the library yet — use the import tools below to add components.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {libraryParts.map((part) => (
-              <PartCard key={part.Part_Number} part={part} onProgramChange={handleProgramChange} />
-            ))}
-          </div>
-        )}
+        {(() => {
+          const filtered = libraryParts.filter(p => {
+            if (filterProgram && p.Program !== filterProgram) return false
+            if (filterPartType && p.Part_Type !== filterPartType) return false
+            return true
+          })
+          if (isSearching) return <p className="text-sm text-muted-foreground">Searching…</p>
+          if (filtered.length === 0) return (
+            <div className="rounded-lg border border-border bg-secondary/10 px-6 py-12 text-center">
+              <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">
+                {(searchQuery.trim() || filterProgram || filterPartType)
+                  ? 'No parts match your search / filters.'
+                  : 'No parts in the library yet — use the import tools below to add components.'}
+              </p>
+            </div>
+          )
+          return (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((part) => (
+                <PartCard key={part.Part_Number} part={part} onFieldChange={handleFieldChange} />
+              ))}
+            </div>
+          )
+        })()}
       </section>
 
       {/* ================================================================
@@ -581,11 +678,9 @@ function StagedPartCard({ item, onAccept, onReject }) {
 // Part Card (library grid)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function PartCard({ part, onProgramChange }) {
+function PartCard({ part, onFieldChange }) {
   const navigate = useNavigate()
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft]     = useState(part.Program ?? '')
-  const [saving, setSaving]   = useState(false)
+  const [savingField, setSavingField] = useState(null) // 'Program' | 'Part_Type' | null
 
   const specs = [
     { label: 'Package',   value: part.Package_Type    ?? '—' },
@@ -596,20 +691,20 @@ function PartCard({ part, onProgramChange }) {
     { label: 'θja',       value: part.Thermal_Resistance ?? '—' },
   ].filter((s) => s.value !== '—')
 
-  const handleSaveProgram = async () => {
-    setSaving(true)
+  const handleDropdownChange = async (field, value) => {
+    const newValue = value || null
+    setSavingField(field)
     try {
       const res = await fetch(`/api/library/${encodeURIComponent(part.Part_Number)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ Program: draft.trim() || null }),
+        body: JSON.stringify({ [field]: newValue }),
       })
       if (res.ok) {
-        onProgramChange?.(part.Part_Number, draft.trim() || null)
-        setEditing(false)
+        onFieldChange?.(part.Part_Number, field, newValue)
       }
     } finally {
-      setSaving(false)
+      setSavingField(null)
     }
   }
 
@@ -663,38 +758,45 @@ function PartCard({ part, onProgramChange }) {
         </CardContent>
       )}
 
-      {/* Program assignment */}
-      <div className="px-6 pb-3 pt-1" onClick={e => e.stopPropagation()}>
-        {editing ? (
-          <div className="flex gap-1.5 items-center">
-            <input
-              className="flex-1 rounded-md border border-border bg-secondary px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-              placeholder="Program name…"
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleSaveProgram()
-                if (e.key === 'Escape') { setEditing(false); setDraft(part.Program ?? '') }
-              }}
-              autoFocus
-              disabled={saving}
-            />
-            <Button size="sm" className="h-6 px-2 text-[10px]" onClick={handleSaveProgram} disabled={saving}>
-              {saving ? '…' : 'Save'}
-            </Button>
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => { setEditing(false); setDraft(part.Program ?? '') }}
-            >✕</button>
+      {/* Program & Part Type dropdowns */}
+      <div className="px-6 pb-3 pt-1 space-y-2" onClick={e => e.stopPropagation()}>
+        {/* Program dropdown */}
+        <div>
+          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest leading-none mb-1">Program</p>
+          <div className="relative">
+            <select
+              value={part.Program || ''}
+              onChange={(e) => handleDropdownChange('Program', e.target.value)}
+              disabled={savingField === 'Program'}
+              className="w-full appearance-none rounded-md border border-border bg-secondary/30 pl-2.5 pr-7 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <option value="">— Select program —</option>
+              {PROGRAM_OPTIONS.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
           </div>
-        ) : (
-          <button className="w-full text-left group" onClick={() => setEditing(true)}>
-            <p className="text-xs text-muted-foreground/60 uppercase tracking-widest leading-none mb-0.5">Program</p>
-            <p className="text-xs text-foreground group-hover:text-primary transition-colors">
-              {part.Program || <span className="text-muted-foreground/40 italic">Click to assign…</span>}
-            </p>
-          </button>
-        )}
+        </div>
+
+        {/* Part Type dropdown */}
+        <div>
+          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest leading-none mb-1">Part Type</p>
+          <div className="relative">
+            <select
+              value={part.Part_Type || ''}
+              onChange={(e) => handleDropdownChange('Part_Type', e.target.value)}
+              disabled={savingField === 'Part_Type'}
+              className="w-full appearance-none rounded-md border border-border bg-secondary/30 pl-2.5 pr-7 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <option value="">— Select part type —</option>
+              {PART_TYPE_OPTIONS.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          </div>
+        </div>
       </div>
 
       {part.source_file && (

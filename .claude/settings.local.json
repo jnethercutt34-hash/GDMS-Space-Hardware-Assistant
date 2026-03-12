@@ -6,7 +6,14 @@
       "Bash(python3:*)",
       "Bash(node:*)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(powershell -Command \"\n\\\\$WshShell = New-Object -ComObject WScript.Shell\n\\\\$Shortcut = \\\\$WshShell.CreateShortcut\\('\\\\$env:USERPROFILE\\\\Desktop\\\\GMDS Space Hardware Assistant.lnk'\\)\n\\\\$Shortcut.TargetPath = 'C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant\\\\launch.bat'\n\\\\$Shortcut.WorkingDirectory = 'C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant'\n\\\\$Shortcut.Description = 'Launch GMDS Space Hardware Assistant'\n\\\\$Shortcut.WindowStyle = 1\n\\\\$Shortcut.Save\\(\\)\nWrite-Host 'Shortcut created successfully'\n\")",
+      "Bash(powershell -Command \"$desktop = [System.Environment]::GetFolderPath\\('Desktop'\\); $WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut\\(\\\\\"$desktop\\\\\\\\GMDS Space Hardware Assistant.lnk\\\\\"\\); $Shortcut.TargetPath = 'C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant\\\\launch.bat'; $Shortcut.WorkingDirectory = 'C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant'; $Shortcut.Description = 'Launch GMDS Space Hardware Assistant'; $Shortcut.WindowStyle = 1; $Shortcut.Save\\(\\); Write-Host \\\\\"Shortcut created at: $desktop\\\\\"\")",
+      "Bash(powershell -File - << 'EOF'\n$desktop = [System.Environment]::GetFolderPath\\('Desktop'\\)\n$WshShell = New-Object -ComObject WScript.Shell\n$lnkPath = Join-Path $desktop \"GMDS Space Hardware Assistant.lnk\"\n$Shortcut = $WshShell.CreateShortcut\\($lnkPath\\)\n$Shortcut.TargetPath = \"C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant\\\\launch.bat\"\n$Shortcut.WorkingDirectory = \"C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant\"\n$Shortcut.Description = \"Launch GMDS Space Hardware Assistant\"\n$Shortcut.WindowStyle = 1\n$Shortcut.Save\\(\\)\nWrite-Host \"Shortcut created at: $lnkPath\"\nEOF)",
+      "WebSearch",
+      "WebFetch(domain:www.flaticon.com)",
+      "WebFetch(domain:uxwing.com)",
+      "Bash(powershell -Command \"\n\\\\$desktop = [System.Environment]::GetFolderPath\\('Desktop'\\)\n\\\\$lnkPath = Join-Path \\\\$desktop 'GMDS Space Hardware Assistant.lnk'\n\\\\$WshShell = New-Object -ComObject WScript.Shell\n\\\\$Shortcut = \\\\$WshShell.CreateShortcut\\(\\\\$lnkPath\\)\n\\\\$Shortcut.TargetPath = 'C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant\\\\launch.bat'\n\\\\$Shortcut.WorkingDirectory = 'C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant'\n\\\\$Shortcut.Description = 'Launch GMDS Space Hardware Assistant'\n\\\\$Shortcut.IconLocation = 'C:\\\\AI-Tools\\\\GMDS-Space-Hardware-Assistant\\\\icon.ico,0'\n\\\\$Shortcut.WindowStyle = 1\n\\\\$Shortcut.Save\\(\\)\nWrite-Host 'Shortcut updated with icon'\n\")"
     ]
   }
 }

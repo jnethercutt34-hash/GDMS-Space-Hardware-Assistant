@@ -7,11 +7,12 @@ from pydantic import BaseModel
 
 from models.component import ComponentData
 from services.pdf_extractor import extract_text_from_pdf
-from services.ai_extractor import extract_components_from_text
+from services.ai_extractor import extract_components_from_text_chunked
 from services.xpedition_stub import simulate_xpedition_push
 from services import part_library
 from services.bom_analyzer import parse_bom_csv
 from services import datasheet_store
+from services import text_store
 
 router = APIRouter()
 
@@ -39,8 +40,11 @@ async def upload_datasheet(file: UploadFile = File(...)):
 
     extracted = extract_text_from_pdf(contents)
 
+    # Save extracted text alongside the PDF for auditability
+    text_store.save(extracted["text"], stored_filename)
+
     try:
-        rows, ai_warnings = extract_components_from_text(extracted["text"])
+        rows, ai_warnings = extract_components_from_text_chunked(extracted["text"])
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
@@ -282,6 +286,7 @@ def get_library_part(part_number: str):
 
 class PatchPartRequest(BaseModel):
     Program: str | None = None
+    Part_Type: str | None = None
 
 
 @router.patch("/library/{part_number}")

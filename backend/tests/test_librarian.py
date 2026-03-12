@@ -45,7 +45,8 @@ def _post_pdf(rows=None):
     mock_result = ComponentExtractionResult(components=rows)
     with (
         patch("routers.librarian.extract_text_from_pdf", return_value=_MOCK_PDF_EXTRACTION),
-        patch("routers.librarian.extract_components_from_text", return_value=(rows, [])),
+        patch("routers.librarian.extract_components_from_text_chunked", return_value=(rows, [])),
+        patch("routers.librarian.text_store"),
         patch("services.part_library.upsert_parts", return_value=None),
     ):
         return client.post(
@@ -121,8 +122,9 @@ def test_empty_rows_returned_when_ai_finds_nothing():
 def test_missing_api_key_returns_503():
     with (
         patch("routers.librarian.extract_text_from_pdf", return_value=_MOCK_PDF_EXTRACTION),
+        patch("routers.librarian.text_store"),
         patch(
-            "routers.librarian.extract_components_from_text",
+            "routers.librarian.extract_components_from_text_chunked",
             side_effect=RuntimeError("INTERNAL_API_KEY is not set."),
         ),
     ):
@@ -137,8 +139,9 @@ def test_missing_api_key_returns_503():
 def test_api_failure_returns_502():
     with (
         patch("routers.librarian.extract_text_from_pdf", return_value=_MOCK_PDF_EXTRACTION),
+        patch("routers.librarian.text_store"),
         patch(
-            "routers.librarian.extract_components_from_text",
+            "routers.librarian.extract_components_from_text_chunked",
             side_effect=Exception("connection timeout"),
         ),
     ):

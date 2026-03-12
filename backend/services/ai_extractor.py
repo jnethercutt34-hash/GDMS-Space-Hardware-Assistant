@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 # and the generated response. Increase for cloud models with larger contexts.
 _MAX_TEXT_CHARS = int(os.environ.get("MAX_PDF_CHARS", "4000"))
 
+_MAX_CHUNK_CHARS = int(os.environ.get("MAX_CHUNK_CHARS",     "6000"))
+_CHUNK_OVERLAP   = int(os.environ.get("CHUNK_OVERLAP_CHARS", "300"))
+_MAX_CHUNKS      = int(os.environ.get("MAX_CHUNKS",          "5"))
+
 
 def _build_system_prompt() -> str:
     """Build a concise system prompt that works well with both large and small LLMs."""
@@ -158,7 +162,7 @@ def _enrich_from_text(component: Dict[str, Any], text: str) -> Dict[str, Any]:
     This is a fallback for when the LLM fails to populate fields that are
     clearly present in the text.
     """
-    first_text = text[:_MAX_TEXT_CHARS] if text else ""
+    first_text = text if text else ""
 
     # Pin count: look for "N-pin" or "N-Pin" patterns
     if not component.get("Pin_Count"):
@@ -345,3 +349,123 @@ def extract_components_from_text(text: str) -> Tuple[List[ComponentData], List[s
         )
 
     return validated, warnings
+
+
+# ---------------------------------------------------------------------------
+# Chunked extraction helpers
+# ---------------------------------------------------------------------------
+
+def _chunk_text(
+    text: str,
+    chunk_size: int = _MAX_CHUNK_CHARS,
+    overlap: int = _CHUNK_OVERLAP,
+    max_chunks: int = _MAX_CHUNKS,
+) -> List[str]:
+    """Split *text* into overlapping chunks bounded by *max_chunks*.
+
+    Returns a list of strings.  If the full text fits in one chunk the
+    original string is returned as a single-element list (fast path).
+    """
+    if len(text) <= chunk_size:
+        return [text]
+
+    stride = chunk_size - overlap
+    chunks: List[str] = []
+    start = 0
+    while start < len(text):
+        chunks.append(text[start: start + chunk_size])
+        start += stride
+
+    if len(chunks) > max_chunks:
+        logger.warning(
+            "Document produced %d chunks; capping at %d. "
+            "Last chunk covers remaining %d chars.",
+            len(chunks), max_chunks, len(text) - (max_chunks - 1) * stride,
+        )
+        # Keep first (max_chunks-1) normal chunks, then one oversized tail chunk
+        tail_start = (max_chunks - 1) * stride
+        chunks = chunks[: max_chunks - 1] + [text[tail_start:]]
+
+    return chunks
+
+
+def _merge_component_results(
+    chunk_results: List[Tuple[List[ComponentData], List[str]]],
+) -> Tuple[List[ComponentData], List[str]]:
+    """Merge ComponentData lists from multiple chunks.
+
+    Deduplication key: ``Part_Number.lower()``.
+    Merge policy: first non-None value per field wins (from earlier chunks).
+    Warning strings are deduplicated while preserving first-seen order.
+    """
+    seen_parts: Dict[str, ComponentData] = {}  # key → merged ComponentData
+    order: List[str] = []
+    seen_warnings: Dict[str, None] = {}  # ordered set via dict
+
+    for components, warnings in chunk_results:
+        for comp in components:
+            key = comp.Part_Number.lower()
+            if key not in seen_parts:
+                seen_parts[key] = comp
+                order.append(key)
+            else:
+                # Fill null fields from the later chunk
+                existing = seen_parts[key].model_dump()
+                incoming = comp.model_dump()
+                for field, val in incoming.items():
+                    if existing.get(field) is None and val is not None:
+                        existing[field] = val
+                seen_parts[key] = ComponentData.model_validate(existing)
+
+        for w in warnings:
+            if w not in seen_warnings:
+                seen_warnings[w] = None
+
+    merged_components = [seen_parts[k] for k in order]
+    merged_warnings = list(seen_warnings.keys())
+    return merged_components, merged_warnings
+
+
+def extract_components_from_text_chunked(
+    text: str,
+) -> Tuple[List[ComponentData], List[str]]:
+    """Extract components from arbitrarily long text using overlapping chunks.
+
+    Fast path: if the text fits in a single chunk, delegates directly to
+    ``extract_components_from_text`` to avoid overhead.
+
+    Args:
+        text: Full text extracted from the PDF datasheet.
+
+    Returns:
+        Tuple of (list of validated ComponentData instances, list of warning strings).
+
+    Raises:
+        RuntimeError: If INTERNAL_API_KEY is not configured.
+    """
+    if len(text) <= _MAX_CHUNK_CHARS:
+        return extract_components_from_text(text)
+
+    chunks = _chunk_text(text, _MAX_CHUNK_CHARS, _CHUNK_OVERLAP, _MAX_CHUNKS)
+    all_warnings: List[str] = []
+
+    if len(chunks) >= _MAX_CHUNKS:
+        all_warnings.append(
+            f"Document exceeded the {_MAX_CHUNKS}-chunk cap "
+            f"({len(text):,} chars total). "
+            "Parameters in the final section of the datasheet may be missed."
+        )
+
+    chunk_results: List[Tuple[List[ComponentData], List[str]]] = []
+    for idx, chunk in enumerate(chunks):
+        logger.info("Processing chunk %d/%d (%d chars)", idx + 1, len(chunks), len(chunk))
+        try:
+            result = extract_components_from_text(chunk)
+            chunk_results.append(result)
+        except RuntimeError:
+            raise  # missing API key — abort immediately
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Chunk %d extraction failed: %s", idx + 1, exc)
+
+    merged_rows, merged_warnings = _merge_component_results(chunk_results)
+    return merged_rows, all_warnings + merged_warnings

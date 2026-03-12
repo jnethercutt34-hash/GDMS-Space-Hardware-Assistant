@@ -72,5 +72,62 @@
     "source_file": "tps7h1121-sep.pdf",
     "added_at": "2026-03-11T22:23:48.432807+00:00",
     "needs_datasheet": false
+  },
+  {
+    "Part_Number": "VSC30-2800S",
+    "Manufacturer": "VPT Power",
+    "Value": null,
+    "Tolerance": null,
+    "Voltage_Rating": "15 V to 50 V continuous, 80 V transient",
+    "Package_Type": "Low-profile: 1.885” x 1.325” x 0.360”",
+    "Pin_Count": null,
+    "Operating_Temperature_Range": "-55 °C to +105 °C",
+    "Thermal_Resistance": null,
+    "Radiation_TID": "30 krad(Si)",
+    "Radiation_SEL_Threshold": null,
+    "Radiation_SEU_Rate": null,
+    "Summary": "Radiation tolerant DC-DC converter designed for the ‘NewSpace’ market",
+    "variants": [
+      {
+        "Part_Number": "VSC30-2805S"
+      },
+      {
+        "Part_Number": "VSC30-283R3S"
+      }
+    ],
+    "source_file": "VPT-VSC30-2800S-Series.pdf",
+    "added_at": "2026-03-12T01:01:30.091012+00:00",
+    "needs_datasheet": false,
+    "datasheet_file": "VPT-VSC30-2800S-Series.pdf"
+  },
+  {
+    "Part_Number": "VSC100-2800S",
+    "Manufacturer": "VPT Power",
+    "Value": null,
+    "Tolerance": null,
+    "Voltage_Rating": "16 V to 40 V continuous, 50 V transient",
+    "Package_Type": "Low-profile: 2.350” x 1.550” x 0.410” ",
+    "Pin_Count": null,
+    "Operating_Temperature_Range": "-55 °C to +105 °C",
+    "Thermal_Resistance": null,
+    "Radiation_TID": "30 krad(Si)",
+    "Radiation_SEL_Threshold": null,
+    "Radiation_SEU_Rate": null,
+    "Summary": "Commercial off the shelf DC-DC converter designed for the ‘NewSpace’ market.",
+    "variants": [
+      {
+        "Part_Number": "VSC100-2828S"
+      },
+      {
+        "Part_Number": "VSC100-2805S"
+      },
+      {
+        "Part_Number": "VSC100-283R3S"
+      }
+    ],
+    "source_file": "VPT-VSC100-2800S-Series.pdf",
+    "added_at": "2026-03-12T01:01:31.246079+00:00",
+    "needs_datasheet": false,
+    "datasheet_file": "VPT-VSC100-2800S-Series.pdf"
   }
 ]

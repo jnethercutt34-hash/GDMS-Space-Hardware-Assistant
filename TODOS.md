@@ -76,52 +76,28 @@
 
 ---
 
-## Short-Term (P1) — Phase 2: Auth + Docker (Week 2)
+## Short-Term (P1) — Phase 2: Auth + Docker (Week 2) ✅ DONE
 
-### API Key + User Header Authentication
-- **What:** Add FastAPI middleware: validates `Authorization: Bearer <key>` against keys stored in `.env`, extracts `X-User` header (trusted, unvalidated), injects user into `request.state`. `/health` endpoint bypasses auth.
-- **Why:** Gets user identity flowing through the system for audit trail.
-- **Pros:** Simple, no external dependencies, enables activity tracking
-- **Cons:** `X-User` is honesty-based (documented trust model). API keys distributed manually.
-- **Effort:** S
-- **Priority:** P1
-- **Depends on:** Nothing
-- **Tests:** valid key → pass, invalid key → 403, missing key → 401, `/health` bypass, `X-User` extraction into `request.state`
+### ✅ API Key + User Header Authentication
+- **Completed:** `backend/middleware/auth.py` — Bearer token validation, X-User extraction, dev mode bypass
+- 10 tests in `test_middleware.py`
 
-### Single Dockerfile
-- **What:** Single Dockerfile: build frontend → copy `dist/` into backend container → FastAPI serves static files via `StaticFiles` mount + API endpoints. One container, one health check, one log stream.
-- **Why:** Internal engineering tool doesn't need nginx or multi-container orchestration.
-- **Effort:** S-M
-- **Priority:** P1
-- **Depends on:** Nothing
+### ✅ Single Dockerfile
+- **Completed:** Multi-stage Dockerfile (Node frontend build → Python backend), SPA fallback in `main.py`, `.dockerignore`
 
-### Upload Size Limits
-- **What:** Reject uploads > 50MB. Stream large uploads to disk first, then process.
-- **Why:** No file size limit means a 500MB PDF consumes all memory and fills disk
-- **Effort:** S-M
-- **Priority:** P1
-- **Depends on:** Nothing
+### ✅ Upload Size Limits
+- **Completed:** `backend/middleware/upload_limit.py` — 50MB default, configurable via `MAX_UPLOAD_BYTES`
+- 3 tests in `test_middleware.py`
 
-### localStorage Staging Persistence
-- **What:** Save pending extraction results to `localStorage` in `ComponentLibrarian.jsx` so they survive browser refresh. Rehydrate on mount.
-- **Why:** Staging state is in React component state — refresh loses everything. The PDF is already saved to disk; only the extraction result is lost.
-- **Effort:** S (10 lines of frontend code)
-- **Priority:** P1
-- **Depends on:** Nothing
+### ✅ localStorage Staging Persistence
+- **Completed:** `ComponentLibrarian.jsx` — staged parts saved/restored from localStorage
 
-### Request ID Middleware + Structured Logging
-- **What:** Add middleware that generates a UUID per request, inject into all log messages, switch to JSON log format
-- **Why:** No way to trace a user action through the system. Essential for debugging.
-- **Effort:** M
-- **Priority:** P1
-- **Depends on:** Nothing
+### ✅ Request ID Middleware + Structured Logging
+- **Completed:** `backend/middleware/request_id.py` — UUID per request, X-Request-ID header, access logging
+- 3 tests in `test_middleware.py`
 
-### Document LLM Prompt Injection Risk
-- **What:** Add a security note to `docs/architecture.md` about the risk of prompt injection via PDF content. Note that Pydantic output validation is the primary defense.
-- **Why:** User PDF text is injected directly into AI prompts
-- **Effort:** S
-- **Priority:** P1
-- **Depends on:** Nothing
+### ✅ Document LLM Prompt Injection Risk
+- **Completed:** `docs/security_prompt_injection.md` — attack surface, defenses, limitations, recommendations
 
 ---
 

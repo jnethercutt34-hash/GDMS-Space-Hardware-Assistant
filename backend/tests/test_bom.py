@@ -67,10 +67,11 @@ SAMPLE_LIBRARY = [
 ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def client():
     from main import app
-    return TestClient(app)
+    with TestClient(app, raise_server_exceptions=False) as c:
+        yield c
 
 
 # ===================================================================
@@ -364,7 +365,7 @@ class TestPipeline:
 # ===================================================================
 
 class TestRouter:
-    @patch("services.bom_analyzer.analyze_bom")
+    @patch("routers.bom.analyze_bom")
     def test_analyze_endpoint(self, mock_analyze, client):
         mock_report = BOMReport(
             filename="test.csv",

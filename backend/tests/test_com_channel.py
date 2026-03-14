@@ -85,7 +85,8 @@ def _empty_channel() -> ChannelModel:
 @pytest.fixture
 def client():
     from main import app
-    return TestClient(app)
+    with TestClient(app) as c:
+        yield c
 
 
 # ===================================================================

@@ -1,15 +1,13 @@
-"""Persistent block diagram store — JSON file backed, thread-safe.
+"""Persistent block diagram store — SQLite backed, thread-safe.
 
-Thin wrapper around JsonStore. Diagrams are keyed by 'id'.
+Thin wrapper around SqliteStore. Diagrams are keyed by 'id'.
 """
-import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from services.json_store import JsonStore
+from services.sqlite_store import SqliteStore
 
-_STORE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "diagrams.json")
-_store = JsonStore(_STORE_PATH)
+_store = SqliteStore("diagrams")
 
 
 def list_all() -> List[Dict[str, Any]]:

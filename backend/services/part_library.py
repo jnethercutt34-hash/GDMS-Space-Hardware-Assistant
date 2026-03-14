@@ -1,21 +1,20 @@
-"""Persistent part library — JSON file backed, thread-safe.
+"""Persistent part library — SQLite backed, thread-safe.
 
 Parts are keyed by Part_Number. When a datasheet contains multiple part
 number variants (different packages of the same IC), they are consolidated
 into a single library entry under a primary part number, with the other
 variants stored in a ``variants`` list.
 
-Uses JsonStore for persistence with in-memory caching.
+Uses SqliteStore for persistence with in-memory caching.
 """
 import os
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from services.json_store import JsonStore
+from services.sqlite_store import SqliteStore
 
-_LIBRARY_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "library.json")
-_store = JsonStore(_LIBRARY_PATH)
+_store = SqliteStore("parts")
 
 
 # ---------------------------------------------------------------------------

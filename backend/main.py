@@ -25,6 +25,7 @@ from middleware.auth import AuthMiddleware
 from middleware.request_id import RequestIDMiddleware
 from middleware.upload_limit import UploadLimitMiddleware
 from routers import librarian, fpga, constraint, block_diagram, com, bom, drc, sipi, stackup
+from services.migrate import run as run_migrations
 
 app = FastAPI(
     title="GDMS Space Hardware Assistant API",
@@ -58,6 +59,9 @@ app.include_router(stackup.router, prefix="/api", tags=["stackup"])
 
 
 logger = logging.getLogger(__name__)
+
+# Auto-migrate JSON → SQLite on startup (idempotent)
+run_migrations()
 
 
 @app.exception_handler(Exception)

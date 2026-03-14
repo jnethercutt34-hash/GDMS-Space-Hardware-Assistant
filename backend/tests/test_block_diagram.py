@@ -124,17 +124,19 @@ class TestBlockDiagramModels:
 class TestBlockDiagramStore:
     @contextmanager
     def _patch_store(self, tmp_path):
-        """Redirect the JsonStore instance to a temp file and clear cache."""
+        """Redirect the SqliteStore instance to a temp database."""
         from services.block_diagram_store import _store
-        store_file = os.path.join(str(tmp_path), "diagrams.json")
-        original_path = _store._path
+        temp_db = os.path.join(str(tmp_path), "test.db")
+        original_db = _store._db_path
+        original_table = _store._table
         original_cache = _store._cache
-        _store._path = store_file
+        _store._db_path = temp_db
         _store._cache = None
+        _store._init_table()
         try:
             yield
         finally:
-            _store._path = original_path
+            _store._db_path = original_db
             _store._cache = original_cache
 
     def test_create_and_list(self, tmp_path):

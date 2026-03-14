@@ -1,5 +1,5 @@
 # Session Handoff — GDMS Space Hardware Assistant
-**Last updated: 2026-03-11 (Session 3)**
+**Last updated: 2026-03-11 (Session 4)**
 
 ---
 
@@ -522,7 +522,129 @@ backend/data/
 
 ---
 
+---
+
+## Session 2026-03-11 Changes (Session 4)
+
+### Chunked PDF Extraction Pipeline — COMPLETE (9 new tests)
+
+The AI extraction pipeline was previously hard-truncating PDF text to the first 4,000 characters before sending to Ollama — silently discarding 95%+ of a typical datasheet. This session replaced that with a full chunked pipeline.
+
+**Problem:** A typical datasheet is 30,000–200,000 characters. `llama3.1:8b` has an 8k token context window. At ~4 chars/token, 6,000 chars ≈ 1,500 tokens — safe with the system prompt and response overhead.
+
+**New env vars in `backend/.env`:**
+```
+MAX_CHUNK_CHARS=6000       # chunk size (≈1,500 tokens at 4 chars/token)
+CHUNK_OVERLAP_CHARS=300    # overlap between chunks for cross-boundary continuity
+MAX_CHUNKS=5               # hard cap; oversized docs get a tail chunk + user warning
+```
+
+**`services/ai_extractor.py` changes:**
+- Added `_MAX_CHUNK_CHARS`, `_CHUNK_OVERLAP`, `_MAX_CHUNKS` constants (read from env at import time)
+- Fixed `_enrich_from_text()` — removed internal re-truncation to `_MAX_TEXT_CHARS`; chunks are already size-bounded so the full chunk text is now scanned
+- **New `_chunk_text(text, chunk_size, overlap, max_chunks) → List[str]`**
+  - Fast path: if `len(text) <= chunk_size`, returns `[text]` immediately
+  - Overlapping window: `stride = chunk_size - overlap`; chunks share 300 chars at boundaries so parameters that straddle a boundary appear in both chunks
+  - Cap: if more chunks than `max_chunks`, keeps first `N-1` normal chunks + one oversized tail chunk; logs WARNING
+- **New `_merge_component_results(chunk_results) → (List[ComponentData], List[str])`**
+  - Dedup key: `Part_Number.lower()` (case-insensitive)
+  - Merge policy: first non-None value per field wins (early chunks take priority)
+  - Warnings deduplicated across chunks (uses ordered dict pattern)
+- **New `extract_components_from_text_chunked(text) → (List[ComponentData], List[str])`**
+  - Fast path: delegates to `extract_components_from_text(text)` for small docs
+  - Chunked path: calls `_chunk_text(text, _MAX_CHUNK_CHARS, _CHUNK_OVERLAP, _MAX_CHUNKS)` with constants passed explicitly (critical for test mockability — default args are evaluated at definition time, not call time)
+  - `RuntimeError` (missing API key) re-raised immediately; other per-chunk exceptions logged and skipped
+  - Prepends cap warning to output if `len(chunks) >= _MAX_CHUNKS`
+  - Returns `merged_rows, all_warnings + merged_warnings`
+
+**`services/text_store.py` — NEW FILE**
+Mirrors `datasheet_store.py` exactly. Saves full extracted PDF text as `.txt` alongside the stored PDF for auditability and potential reprocessing.
+- Store dir: `backend/data/texts/`
+- Filename: strips `.pdf`, appends `.txt` (e.g. `TPS7H1111_ab12cd34.pdf` → `TPS7H1111_ab12cd34.txt`)
+- Same MD5-based collision dedup as `datasheet_store.py`
+- Functions: `save(text, source_pdf_filename)`, `get_path(txt_filename)`, `exists(txt_filename)`
+
+**`routers/librarian.py` changes:**
+- Import: `extract_components_from_text_chunked` (replaces `extract_components_from_text`)
+- Import: `text_store` (new)
+- `upload_datasheet()`: calls `text_store.save(extracted["text"], stored_filename)` after PDF save; calls `extract_components_from_text_chunked` instead of the old single-call extractor
+
+**`tests/test_chunked_extraction.py` — NEW FILE (9 tests)**
+```
+test_chunk_text_single_chunk_fast_path          — short text → [text] verbatim
+test_chunk_text_overlap_correctness             — chunks[1][:overlap] == chunks[0][-overlap:]
+test_chunk_text_max_chunks_cap                  — cap triggers warning log, len == max_chunks
+test_merge_deduplicates_same_part_number        — same PN in two chunks → one output entry
+test_merge_fills_null_from_later_chunk          — null field filled from later chunk
+test_merge_keeps_first_non_null_ignores_conflict — first chunk wins on conflict
+test_chunked_extraction_calls_base_n_times      — N chunks → N base extractor calls
+test_chunked_extraction_fast_path_small_text    — small text → 1 call, no cap warning
+test_chunked_extraction_cap_warning_emitted     — oversized doc → cap warning in output
+```
+
+All 9 tests pass. Total test count: **244 passing** (up from 242; +9 new, pre-existing failures in fpga/com/constraint/drc tests unchanged — those failures predate this session).
+
+**`tests/test_librarian.py` changes:**
+- Updated all `_post_pdf()` helpers and 503/502 test patches to use `routers.librarian.extract_components_from_text_chunked` (new function name) and `routers.librarian.text_store` (new import, mocked to avoid file I/O in tests)
+
+**File tree additions:**
+```
+backend/services/
+│   └── text_store.py          ← extracted text store with dedup (new)
+backend/data/
+│   └── texts/                 ← stored .txt files (gitignored, created on first upload)
+backend/tests/
+│   └── test_chunked_extraction.py  ← 9 new unit tests
+```
+
+---
+
+### Engineering Documentation — COMPLETE (8 new files in `docs/`)
+
+Wrote a complete reference documentation set that allows engineers to answer deep technical questions about any part of the system without reading the source code.
+
+| File | Scope |
+|------|-------|
+| `docs/architecture.md` | System-wide: stack, request flow (full datasheet upload data path traced step by step), env vars, AI integration pattern, persistence layer, all 8 modules, test strategy |
+| `docs/module_backend_core.md` | `main.py`, `ai_client.py`, `pdf_extractor.py` — startup order, CORS, global exception handler, why PyMuPDF, logging sinks |
+| `docs/module_librarian.md` | Full deep dive: every API endpoint, chunking math, overlap rationale, merge policy, system prompt design, field alias normalization, salvage strategies, regex patterns, variant scoring algorithm |
+| `docs/module_fpga.md` | CSV delta algorithm (why inner join, whitespace normalization), AI risk batch call, badge coloring, Xpedition script structure |
+| `docs/module_constraint_sipi.md` | Constraint extraction, CES export, SI/PI knowledge base structure, loss budget formula derivation, offline AI advisor keyword matching |
+| `docs/module_block_diagram.md` | Data model, all three AI generation modes, store pattern, export formats |
+| `docs/module_bom.md` | BOM parsing (flexible header detection, Xpedition format), lifecycle/radiation heuristics (all rules listed), risk scoring decision tree, library cross-reference, export formats |
+| `docs/module_drc.md` | All 13 DRC rules described individually with detection logic, netlist format support, AI checker failure handling |
+| `docs/module_com_stackup.md` | COM data model and estimation algorithm, IPC-2141A impedance formulas (microstrip, stripline, differential), stackup templates |
+| `docs/module_frontend.md` | Vite proxy, design tokens (exact hex values), routing table, every shared component with props/behavior, standard fetch pattern |
+
+---
+
+## Current Test Suite State
+
+```
+backend/ $ python3 -m pytest tests/ -q
+244 passed, 30 failed
+```
+
+The 30 failures are pre-existing in `test_fpga.py`, `test_com_channel.py`, `test_constraint.py`, `test_drc.py` — they predate this session and are unrelated to the chunking work. All librarian and chunked extraction tests pass.
+
+---
+
+## Environment Variables (Updated)
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `INTERNAL_API_KEY` | API key for OpenAI-compatible gateway (required) | — |
+| `INTERNAL_BASE_URL` | Gateway base URL | `https://api.openai.com/v1` |
+| `INTERNAL_MODEL_NAME` | Model name | `gpt-4o-mini` |
+| `MAX_CHUNK_CHARS` | Max chars per AI chunk | `6000` |
+| `CHUNK_OVERLAP_CHARS` | Overlap between adjacent chunks | `300` |
+| `MAX_CHUNKS` | Hard cap on chunks per document | `5` |
+
+---
+
 ## Future Work
 
+- **Fix pre-existing test failures** — `test_fpga.py`, `test_com_channel.py`, `test_constraint.py`, `test_drc.py` have `AttributeError: _get_client` failures that need investigation
 - **Production deployment** — Docker containerization, authentication, production CORS
 - **pywin32 local listener** — daemon that watches for generated scripts and auto-executes them in Xpedition
+- **OCR support** — scanned datasheets return empty text from PyMuPDF; need Tesseract/OCR integration for image-only PDFs

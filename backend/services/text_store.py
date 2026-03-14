@@ -35,7 +35,8 @@ def save(text: str, source_pdf_filename: str) -> str:
     text_bytes = text.encode("utf-8")
 
     if os.path.exists(dest):
-        existing_hash = hashlib.md5(open(dest, "rb").read()).hexdigest()[:8]
+        with open(dest, "rb") as f:
+            existing_hash = hashlib.md5(f.read()).hexdigest()[:8]
         new_hash = hashlib.md5(text_bytes).hexdigest()[:8]
         if existing_hash == new_hash:
             return name

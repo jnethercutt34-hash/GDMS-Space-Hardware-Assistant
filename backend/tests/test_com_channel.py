@@ -132,7 +132,7 @@ class TestModels:
 
     def test_com_result_pass(self):
         r = COMResult(com_db=5.0, passed=True, eye_height_mv=100,
-                      eye_width_ps=50, ild_db=10, rl_db=25)
+                      eye_width_ps=50, total_il_db=10, rl_db=25)
         assert r.passed is True
 
     def test_channel_extraction_result(self):
@@ -170,7 +170,7 @@ class TestCOMCalculator:
         ch = _short_channel()
         # NRZ 10G → Nyquist = 5 GHz
         result = calculate_com(ch)
-        assert result.ild_db > 0  # non-trivial IL
+        assert result.total_il_db > 0  # non-trivial IL
 
     def test_pam4_penalty_applied(self):
         ch = _short_channel()

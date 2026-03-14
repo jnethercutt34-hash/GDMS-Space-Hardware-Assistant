@@ -88,7 +88,7 @@ def _risk_payload_for_swaps():
 def _post_csvs(baseline=BASELINE_CSV, new=NEW_CSV):
     """Post CSVs with the AI risk assessor mocked to return standard assessments."""
     mock_client = _make_openai_mock(_risk_payload_for_swaps())
-    with patch("services.fpga_risk_assessor._get_client", return_value=mock_client):
+    with patch("services.fpga_risk_assessor.get_client", return_value=mock_client):
         return client.post(
             "/api/compare-fpga-pins",
             files={
@@ -101,7 +101,7 @@ def _post_csvs(baseline=BASELINE_CSV, new=NEW_CSV):
 def _post_csvs_no_ai(baseline=BASELINE_CSV, new=NEW_CSV):
     """Post CSVs with the AI risk assessor raising RuntimeError (no API key)."""
     with patch(
-        "services.fpga_risk_assessor._get_client",
+        "services.fpga_risk_assessor.get_client",
         side_effect=RuntimeError("INTERNAL_API_KEY is not set"),
     ):
         return client.post(
@@ -170,7 +170,7 @@ def test_unchanged_signals_excluded():
 def test_no_swaps_returns_empty_list():
     # No swaps → AI is never called, so no mock needed
     mock_client = _make_openai_mock({"assessments": []})
-    with patch("services.fpga_risk_assessor._get_client", return_value=mock_client):
+    with patch("services.fpga_risk_assessor.get_client", return_value=mock_client):
         response = client.post(
             "/api/compare-fpga-pins",
             files={
@@ -275,7 +275,7 @@ def test_risk_assessor_populates_ai_field():
     ]
     mock_client = _make_openai_mock(_risk_payload_for_swaps())
 
-    with patch("services.fpga_risk_assessor._get_client", return_value=mock_client):
+    with patch("services.fpga_risk_assessor.get_client", return_value=mock_client):
         result = assess_pin_risks(swaps)
 
     assert len(result) == 2
@@ -297,7 +297,7 @@ def test_risk_assessor_raises_when_no_api_key():
          "Old_Bank": "34", "New_Bank": "35", "AI_Risk_Assessment": None},
     ]
     with patch(
-        "services.fpga_risk_assessor._get_client",
+        "services.fpga_risk_assessor.get_client",
         side_effect=RuntimeError("INTERNAL_API_KEY is not set"),
     ):
         with pytest.raises(RuntimeError, match="INTERNAL_API_KEY"):
@@ -320,7 +320,7 @@ def test_risk_assessor_low_risk_for_same_bank():
     ]
     mock_client = _make_openai_mock(payload)
 
-    with patch("services.fpga_risk_assessor._get_client", return_value=mock_client):
+    with patch("services.fpga_risk_assessor.get_client", return_value=mock_client):
         result = assess_pin_risks(swaps)
 
     assert result[0]["AI_Risk_Assessment"].startswith("Low Risk:")
@@ -339,7 +339,7 @@ def test_risk_assessor_calls_llm_with_correct_signal_names():
     }
     mock_client = _make_openai_mock(payload)
 
-    with patch("services.fpga_risk_assessor._get_client", return_value=mock_client):
+    with patch("services.fpga_risk_assessor.get_client", return_value=mock_client):
         assess_pin_risks(swaps)
 
     # Inspect the user message sent to the LLM
@@ -363,7 +363,7 @@ def test_endpoint_returns_503_when_api_key_missing():
 def test_endpoint_returns_502_on_ai_network_error():
     """502 when the AI API call fails for non-key reasons."""
     with patch(
-        "services.fpga_risk_assessor._get_client",
+        "services.fpga_risk_assessor.get_client",
         side_effect=ConnectionError("Network unreachable"),
     ):
         response = client.post(

@@ -24,8 +24,6 @@ logger = logging.getLogger(__name__)
 # For local models with small context windows (e.g. llama3.1:8b @ 4096 tokens),
 # keep this low. ~4000 chars ≈ 1000 tokens, leaving room for the system prompt
 # and the generated response. Increase for cloud models with larger contexts.
-_MAX_TEXT_CHARS = int(os.environ.get("MAX_PDF_CHARS", "4000"))
-
 _MAX_CHUNK_CHARS = int(os.environ.get("MAX_CHUNK_CHARS",     "6000"))
 _CHUNK_OVERLAP   = int(os.environ.get("CHUNK_OVERLAP_CHARS", "300"))
 _MAX_CHUNKS      = int(os.environ.get("MAX_CHUNKS",          "5"))
@@ -258,18 +256,10 @@ def extract_components_from_text(text: str) -> Tuple[List[ComponentData], List[s
     model = get_model()
     warnings: List[str] = []
 
-    # Check for truncation and warn
-    truncated_text = text[:_MAX_TEXT_CHARS]
-    if len(text) > _MAX_TEXT_CHARS:
-        pct = round(len(truncated_text) / len(text) * 100)
-        warnings.append(
-            f"PDF text was truncated from {len(text):,} to {_MAX_TEXT_CHARS:,} characters "
-            f"({pct}% of full text). Parameters deep in the datasheet may be missed."
-        )
-        logger.warning(
-            "PDF text truncated: %d → %d chars (%d%%)",
-            len(text), _MAX_TEXT_CHARS, pct,
-        )
+    # NOTE: No truncation here — the chunked pipeline (_chunk_text) already
+    # guarantees that each chunk fits within the model's context window.
+    # Previously, _MAX_TEXT_CHARS re-truncated chunks from 6000→4000 chars,
+    # silently discarding 33% of each chunk's data.
 
     response = client.chat.completions.create(
         model=model,
@@ -281,7 +271,7 @@ def extract_components_from_text(text: str) -> Tuple[List[ComponentData], List[s
                 "role": "user",
                 "content": (
                     "Extract all component parameters from the following datasheet text:\n\n"
-                    + truncated_text
+                    + text
                 ),
             },
         ],

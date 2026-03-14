@@ -26,7 +26,7 @@ def get_client() -> OpenAI:
             "INTERNAL_API_KEY is not set. Add it to your .env file and restart the server."
         )
 
-    return OpenAI(api_key=api_key, base_url=base_url)
+    return OpenAI(api_key=api_key, base_url=base_url, timeout=60.0)
 
 
 def get_model() -> str:

@@ -31,7 +31,8 @@ def save(pdf_bytes: bytes, original_filename: str) -> str:
 
     # If file already exists with same content, just return the name
     if os.path.exists(dest):
-        existing_hash = hashlib.md5(open(dest, "rb").read()).hexdigest()[:8]
+        with open(dest, "rb") as f:
+            existing_hash = hashlib.md5(f.read()).hexdigest()[:8]
         new_hash = hashlib.md5(pdf_bytes).hexdigest()[:8]
         if existing_hash == new_hash:
             return name

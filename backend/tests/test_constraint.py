@@ -98,7 +98,7 @@ def _post_pdf(constraints=None):
         constraints = _SAMPLE_CONSTRAINTS
     with (
         patch("routers.constraint.extract_text_from_pdf", return_value=_MOCK_PDF_EXTRACTION),
-        patch("routers.constraint.extract_constraints_from_text", return_value=constraints),
+        patch("routers.constraint.extract_constraints_from_text", return_value=(constraints, [])),
     ):
         return client.post(
             "/api/extract-constraints",
@@ -166,23 +166,23 @@ class TestConstraintExtractor:
         }
         mock_client = _make_openai_mock(ai_response)
 
-        with patch("services.constraint_extractor._get_client", return_value=mock_client):
+        with patch("services.constraint_extractor.get_client", return_value=mock_client):
             from services.constraint_extractor import extract_constraints_from_text
-            result = extract_constraints_from_text("dummy text")
+            constraints, warnings = extract_constraints_from_text("dummy text")
 
-        assert len(result) == 2
-        assert result[0].Signal_Class == "DDR4_DQ"
-        assert result[0].Rule_Type == "Impedance"
+        assert len(constraints) == 2
+        assert constraints[0].Signal_Class == "DDR4_DQ"
+        assert constraints[0].Rule_Type == "Impedance"
 
     def test_extract_empty_constraints(self):
         ai_response = {"constraints": []}
         mock_client = _make_openai_mock(ai_response)
 
-        with patch("services.constraint_extractor._get_client", return_value=mock_client):
+        with patch("services.constraint_extractor.get_client", return_value=mock_client):
             from services.constraint_extractor import extract_constraints_from_text
-            result = extract_constraints_from_text("no SI/PI info here")
+            constraints, warnings = extract_constraints_from_text("no SI/PI info here")
 
-        assert result == []
+        assert constraints == []
 
     def test_extract_salvages_partial_data(self):
         """If one rule is malformed, the others should still be returned."""
@@ -203,15 +203,15 @@ class TestConstraintExtractor:
                 "ConstraintExtractionResult", []
             )
 
-        with patch("services.constraint_extractor._get_client", return_value=mock_client):
+        with patch("services.constraint_extractor.get_client", return_value=mock_client):
             with patch(
                 "services.constraint_extractor.ConstraintExtractionResult.model_validate",
                 side_effect=_raise_validation,
             ):
                 from services.constraint_extractor import extract_constraints_from_text
-                result = extract_constraints_from_text("mixed text")
+                constraints, warnings = extract_constraints_from_text("mixed text")
 
-        assert len(result) == 2
+        assert len(constraints) == 2
 
     def test_extract_raises_on_bad_json(self):
         mock_message = MagicMock()
@@ -223,7 +223,7 @@ class TestConstraintExtractor:
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_response
 
-        with patch("services.constraint_extractor._get_client", return_value=mock_client):
+        with patch("services.constraint_extractor.get_client", return_value=mock_client):
             from services.constraint_extractor import extract_constraints_from_text
             with pytest.raises(ValueError, match="non-JSON"):
                 extract_constraints_from_text("text")
@@ -231,7 +231,7 @@ class TestConstraintExtractor:
     def test_extract_no_api_key(self):
         with patch.dict("os.environ", {}, clear=True):
             # Clear any cached INTERNAL_API_KEY
-            with patch("services.constraint_extractor._get_client", side_effect=RuntimeError("INTERNAL_API_KEY is not set")):
+            with patch("services.constraint_extractor.get_client", side_effect=RuntimeError("INTERNAL_API_KEY is not set")):
                 from services.constraint_extractor import extract_constraints_from_text
                 with pytest.raises(RuntimeError, match="INTERNAL_API_KEY"):
                     extract_constraints_from_text("text")

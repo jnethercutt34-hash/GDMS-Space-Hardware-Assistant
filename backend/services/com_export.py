@@ -131,7 +131,7 @@ def generate_summary_report(channel: ChannelModel, result: COMResult) -> str:
         f"| **COM** | **{result.com_db} dB** {status} |",
         f"| Eye Height | {result.eye_height_mv} mV |",
         f"| Eye Width | {result.eye_width_ps} ps |",
-        f"| Insertion Loss @ Nyquist | {result.ild_db} dB |",
+        f"| Insertion Loss @ Nyquist | {result.total_il_db} dB |",
         f"| Return Loss (worst) | {result.rl_db} dB |",
         f"",
         f"## Channel Segments",

@@ -54,41 +54,25 @@
 
 ---
 
-## Short-Term (P1) — Phase 1: Store Refactoring (Week 1)
+## Short-Term (P1) — Phase 1: Store Refactoring (Week 1) ✅ DONE
 
-### Extract `FileStore` Base Class
-- **What:** Consolidate `datasheet_store.py` and `text_store.py` into a shared `FileStore` base class parameterized by store directory, file extension, and write mode (binary/text). Both stores become thin subclasses.
-- **Why:** The two files are 90% identical — same `_sanitize`, `save` with MD5 dedup, `get_path`, `exists`. DRY violation.
-- **Pros:** Single place to fix bugs, DRY, foundation for potential SQLite file references
-- **Cons:** Adds a new abstraction layer. Existing imports change.
-- **Effort:** S
-- **Priority:** P1
-- **Depends on:** File handle leak fix (P0)
-- **Tests:** `_sanitize()` (path traversal, special chars, empty), `save()` (new file, dedup same content, collision different content), `get_path()` (hit, miss), `exists()`
+### ✅ Extract `FileStore` Base Class
+- **Completed:** `backend/services/file_store.py` — MD5 dedup, sanitize, binary/text modes
+- `datasheet_store.py` and `text_store.py` rewritten as thin wrappers
+- 19 tests in `test_file_store.py`
 
-### Extract `JsonStore` Base Class with Built-in Cache
-- **What:** Consolidate `part_library._load/_save` and `block_diagram_store._load/_save` into a shared `JsonStore` base with thread-safe CRUD and in-memory caching. Domain-specific methods (consolidate_variants, search) stay in subclasses.
-- **Why:** Two identical JSON store patterns. Cache eliminates redundant disk I/O.
-- **Pros:** DRY, built-in cache (invalidate on write), single place for corruption handling
-- **Cons:** New abstraction. Subclasses must call `super()._save()` to invalidate cache.
-- **Effort:** M
-- **Priority:** P1
-- **Depends on:** Nothing
-- **Tests:** load empty, load valid, load corrupted JSON (graceful), save + reload roundtrip, concurrent writes, cache invalidation after write
+### ✅ Extract `JsonStore` Base Class with Built-in Cache
+- **Completed:** `backend/services/json_store.py` — thread-safe CRUD, in-memory cache, corruption handling
+- `block_diagram_store.py` rewritten as thin wrapper
+- `part_library.py` rewritten to use JsonStore
+- 20 tests in `test_json_store.py` (incl. concurrent writes, corruption, cache invalidation)
 
-### Pre-compute `_search_text` Field at Insert Time
-- **What:** In `upsert_parts()` and `upsert_placeholder_parts()`, compute a lowercase concatenation of all searchable fields and store as `_search_text`. `search()` becomes `if q in part["_search_text"]`.
-- **Why:** Current search re-computes the haystack for every part on every call via string concatenation.
-- **Effort:** S
-- **Priority:** P1
-- **Depends on:** JsonStore extraction
+### ✅ Pre-compute `_search_text` Field at Insert Time
+- **Completed:** `_build_search_text()` in `part_library.py` — computed at upsert time, used by `search()`
 
-### Unit Tests for Stores + Variant Consolidation
-- **What:** Write dedicated unit tests for `part_library.consolidate_variants()`, `_pick_primary()`, `_build_variant_entry()`, and the `FileStore`/`JsonStore` base classes
-- **Why:** These are critical paths with zero dedicated tests. A bug in `_sanitize()` is a security issue.
-- **Effort:** M (30-40 tests)
-- **Priority:** P1
-- **Depends on:** FileStore + JsonStore extraction
+### ✅ Unit Tests for Stores + Variant Consolidation
+- **Completed:** 25 tests in `test_part_library_internals.py` (_base_pn, _pick_primary, _build_variant_entry, consolidate_variants, _build_search_text)
+- **Total new tests:** 64 (365 total, up from 301)
 
 ---
 

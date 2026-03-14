@@ -101,16 +101,16 @@
 
 ---
 
-## Short-Term (P1) — Phase 3: SQLite Swap (Week 3+)
+## Short-Term (P1) — Phase 3: SQLite Swap (Week 3+) ✅ DONE
 
-### SQLite Migration (Phase 2 of Store Refactoring)
-- **What:** Replace `JsonStore` backend from JSON files to SQLite (same public API). Write a one-time migration script that reads existing JSON files and populates SQLite tables. Keep JSON files as backup.
-- **Why:** JSON files have no transactions, no concurrent access, no querying, and corrupt on crash.
-- **Pros:** Transactions, concurrent reads, proper indexing, migration path to PostgreSQL
-- **Cons:** Data migration effort, new dependency (sqlite3 is stdlib, so minimal)
-- **Effort:** M (smaller than originally estimated because JsonStore API is already extracted)
-- **Priority:** P1
-- **Depends on:** JsonStore base class extraction (Phase 1)
+### ✅ SQLite Migration (Phase 2 of Store Refactoring)
+- **Completed:** `backend/services/sqlite_store.py` — SqliteStore drop-in replacement for JsonStore
+- WAL mode, JSON blob per row, same public API + internal `_lock`/`_load`/`_save`
+- Auto-migration on startup via `backend/services/migrate.py` (idempotent)
+- JSON files kept as backup, `store.db` added to `.gitignore`
+- 25 tests in `test_sqlite_store.py`
+- Also fixed: middleware rewritten as pure ASGI (fixes BaseHTTPMiddleware deadlock), BOM test mock path fix
+- **Total: 406 tests passing**
 
 ---
 

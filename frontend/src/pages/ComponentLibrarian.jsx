@@ -70,7 +70,19 @@ export default function ComponentLibrarian() {
 
   // ── Staging area (extracted but not yet accepted) ────────────────────────
   // Each item: { id, filename, storedFilename, consolidated, rows, warnings, accepted }
-  const [staged, setStaged] = useState([])
+  // Persisted to localStorage so pending reviews survive browser refresh.
+  const STAGING_KEY = 'gdms_staged_parts'
+  const [staged, setStaged] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STAGING_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  })
+
+  useEffect(() => {
+    try { localStorage.setItem(STAGING_KEY, JSON.stringify(staged)) }
+    catch { /* quota exceeded — ignore */ }
+  }, [staged])
 
   // ── BOM import ───────────────────────────────────────────────────────────
   const [bomResult, setBomResult]       = useState(null)

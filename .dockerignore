@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Node
+frontend/node_modules
+frontend/dist
+
+# Python
+backend/__pycache__
+backend/**/__pycache__
+backend/.pytest_cache
+backend/server.log
+
+# Data (mount as volume, don't bake in)
+backend/data/datasheets/*.pdf
+backend/data/texts/*.txt
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Docs (not needed in container)
+docs/
+*.md
+!README.md

@@ -4,29 +4,45 @@ Parts are keyed by Part_Number. When a datasheet contains multiple part
 number variants (different packages of the same IC), they are consolidated
 into a single library entry under a primary part number, with the other
 variants stored in a ``variants`` list.
+
+Uses JsonStore for persistence with in-memory caching.
 """
-import json
 import os
 import re
-import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from services.json_store import JsonStore
+
 _LIBRARY_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "library.json")
-_lock = threading.Lock()
+_store = JsonStore(_LIBRARY_PATH)
 
 
-def _load() -> List[Dict[str, Any]]:
-    if not os.path.exists(_LIBRARY_PATH):
-        return []
-    with open(_LIBRARY_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+# ---------------------------------------------------------------------------
+# Search text pre-computation
+# ---------------------------------------------------------------------------
+
+def _build_search_text(part: Dict[str, Any]) -> str:
+    """Build a lowercase search haystack from all text fields + variants."""
+    parts = []
+    for k, v in part.items():
+        if k == "_search_text" or k == "variants" or v is None:
+            continue
+        if isinstance(v, list):
+            continue
+        parts.append(str(v).lower())
+    for variant in part.get("variants", []):
+        for v in variant.values():
+            if v is not None:
+                parts.append(str(v).lower())
+    return " ".join(parts)
 
 
-def _save(parts: List[Dict[str, Any]]) -> None:
-    os.makedirs(os.path.dirname(_LIBRARY_PATH), exist_ok=True)
-    with open(_LIBRARY_PATH, "w", encoding="utf-8") as f:
-        json.dump(parts, f, indent=2, ensure_ascii=False)
+def _ensure_search_text(part: Dict[str, Any]) -> Dict[str, Any]:
+    """Add _search_text field if missing."""
+    if "_search_text" not in part:
+        part["_search_text"] = _build_search_text(part)
+    return part
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +149,10 @@ def consolidate_variants(parts: List[Dict[str, Any]], source_file: str = "") -> 
     return entry
 
 
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 def upsert_parts(
     new_parts: List[Dict[str, Any]],
     source_file: str,
@@ -159,10 +179,13 @@ def upsert_parts(
     if datasheet_file:
         consolidated["datasheet_file"] = datasheet_file
 
+    # Pre-compute search text
+    consolidated["_search_text"] = _build_search_text(consolidated)
+
     pn = consolidated["Part_Number"]
 
-    with _lock:
-        parts = _load()
+    with _store._lock:
+        parts = list(_store._load())
         index: Dict[str, int] = {p["Part_Number"]: i for i, p in enumerate(parts)}
 
         # Also remove any old entries that match variant PNs (cleanup from
@@ -175,11 +198,11 @@ def upsert_parts(
 
         if pn in index:
             parts[index[pn]] = consolidated
-            _save(parts)
+            _store._save(parts)
             return 0
         else:
             parts.append(consolidated)
-            _save(parts)
+            _store._save(parts)
             return 1
 
 
@@ -196,8 +219,8 @@ def upsert_placeholder_parts(
     Returns dict with counts: {"added": N, "skipped": M}.
     """
     timestamp = datetime.now(timezone.utc).isoformat()
-    with _lock:
-        existing = _load()
+    with _store._lock:
+        existing = list(_store._load())
         index = {p["Part_Number"]: i for i, p in enumerate(existing)}
         added = 0
         skipped = 0
@@ -214,49 +237,52 @@ def upsert_placeholder_parts(
                 "added_at": timestamp,
                 "needs_datasheet": True,
             }
+            entry["_search_text"] = _build_search_text(entry)
             existing.append(entry)
             index[pn] = len(existing) - 1
             added += 1
-        _save(existing)
+        _store._save(existing)
     return {"added": added, "skipped": skipped}
 
 
 def get_all() -> List[Dict[str, Any]]:
-    return _load()
+    return _store.get_all()
 
 
 def get_by_part_number(part_number: str) -> Dict[str, Any] | None:
     """Look up a single part by Part_Number (exact match)."""
-    for p in _load():
-        if p.get("Part_Number") == part_number:
-            return p
-    return None
+    return _store.get_by_key("Part_Number", part_number)
 
 
 def patch_part(part_number: str, updates: Dict[str, Any]) -> Dict[str, Any] | None:
     """Update specific fields on a part by Part_Number. Returns updated part or None."""
-    with _lock:
-        parts = _load()
+    with _store._lock:
+        parts = list(_store._load())
         for i, p in enumerate(parts):
             if p.get("Part_Number") == part_number:
                 parts[i] = {**p, **updates}
-                _save(parts)
+                # Recompute search text after update
+                parts[i]["_search_text"] = _build_search_text(parts[i])
+                _store._save(parts)
                 return parts[i]
     return None
 
 
 def search(query: str) -> List[Dict[str, Any]]:
-    """Case-insensitive substring search across all text fields, including variants."""
+    """Case-insensitive substring search across all text fields, including variants.
+
+    Uses pre-computed _search_text field for fast lookup. Falls back to
+    building the haystack on-the-fly for legacy entries without _search_text.
+    """
     q = query.lower().strip()
     if not q:
-        return _load()
+        return _store.get_all()
     results = []
-    for part in _load():
-        # Build haystack from all top-level values
-        haystack = " ".join(str(v) for v in part.values() if v and not isinstance(v, list)).lower()
-        # Also include variant part numbers in the search
-        for variant in part.get("variants", []):
-            haystack += " " + " ".join(str(v) for v in variant.values() if v).lower()
+    for part in _store._load():
+        haystack = part.get("_search_text")
+        if haystack is None:
+            # Legacy entry — build haystack on-the-fly
+            haystack = _build_search_text(part)
         if q in haystack:
             results.append(part)
     return results

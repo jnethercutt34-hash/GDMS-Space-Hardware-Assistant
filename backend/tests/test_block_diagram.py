@@ -2,6 +2,7 @@
 import json
 import os
 import tempfile
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -121,9 +122,20 @@ class TestBlockDiagramModels:
 # ===========================================================================
 
 class TestBlockDiagramStore:
+    @contextmanager
     def _patch_store(self, tmp_path):
+        """Redirect the JsonStore instance to a temp file and clear cache."""
+        from services.block_diagram_store import _store
         store_file = os.path.join(str(tmp_path), "diagrams.json")
-        return patch("services.block_diagram_store._STORE_PATH", store_file)
+        original_path = _store._path
+        original_cache = _store._cache
+        _store._path = store_file
+        _store._cache = None
+        try:
+            yield
+        finally:
+            _store._path = original_path
+            _store._cache = original_cache
 
     def test_create_and_list(self, tmp_path):
         with self._patch_store(tmp_path):

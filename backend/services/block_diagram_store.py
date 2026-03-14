@@ -1,66 +1,39 @@
-"""Persistent block diagram store — JSON file backed, thread-safe."""
-import json
+"""Persistent block diagram store — JSON file backed, thread-safe.
+
+Thin wrapper around JsonStore. Diagrams are keyed by 'id'.
+"""
 import os
-import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from services.json_store import JsonStore
+
 _STORE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "diagrams.json")
-_lock = threading.Lock()
-
-
-def _load() -> List[Dict[str, Any]]:
-    if not os.path.exists(_STORE_PATH):
-        return []
-    with open(_STORE_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _save(diagrams: List[Dict[str, Any]]) -> None:
-    os.makedirs(os.path.dirname(_STORE_PATH), exist_ok=True)
-    with open(_STORE_PATH, "w", encoding="utf-8") as f:
-        json.dump(diagrams, f, indent=2, ensure_ascii=False)
+_store = JsonStore(_STORE_PATH)
 
 
 def list_all() -> List[Dict[str, Any]]:
-    return _load()
+    return _store.get_all()
 
 
 def get_by_id(diagram_id: str) -> Optional[Dict[str, Any]]:
-    for d in _load():
-        if d.get("id") == diagram_id:
-            return d
-    return None
+    return _store.get_by_key("id", diagram_id)
 
 
 def create(diagram: Dict[str, Any]) -> Dict[str, Any]:
-    with _lock:
-        diagrams = _load()
-        diagrams.append(diagram)
-        _save(diagrams)
-    return diagram
+    return _store.append(diagram)
 
 
 def update(diagram_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    with _lock:
-        diagrams = _load()
-        for i, d in enumerate(diagrams):
-            if d.get("id") == diagram_id:
-                data["id"] = diagram_id
-                data["updated_at"] = datetime.now(timezone.utc).isoformat()
-                # Preserve created_at
-                data.setdefault("created_at", d.get("created_at"))
-                diagrams[i] = data
-                _save(diagrams)
-                return data
+    data["id"] = diagram_id
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    # Preserve created_at from existing record
+    existing = get_by_id(diagram_id)
+    if existing:
+        data.setdefault("created_at", existing.get("created_at"))
+        return _store.update_by_key("id", diagram_id, data)
     return None
 
 
 def delete(diagram_id: str) -> bool:
-    with _lock:
-        diagrams = _load()
-        new = [d for d in diagrams if d.get("id") != diagram_id]
-        if len(new) == len(diagrams):
-            return False
-        _save(new)
-    return True
+    return _store.delete_by_key("id", diagram_id)
